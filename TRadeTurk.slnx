@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TRadeTurk.Application/TRadeTurk.Application.csproj" />
+    <Project Path="src/TRadeTurk.Domain/TRadeTurk.Domain.csproj" />
+    <Project Path="src/TRadeTurk.Infrastructure/TRadeTurk.Infrastructure.csproj" />
+    <Project Path="src/TRadeTurk.WebAPI/TRadeTurk.WebAPI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TRadeTurk.Application.Tests/TRadeTurk.Application.Tests.csproj" />
+    <Project Path="tests/TRadeTurk.Domain.Tests/TRadeTurk.Domain.Tests.csproj" />
+    <Project Path="tests/TRadeTurk.Infrastructure.Tests/TRadeTurk.Infrastructure.Tests.csproj" />
+    <Project Path="tests/TRadeTurk.WebAPI.Tests/TRadeTurk.WebAPI.Tests.csproj" />
+  </Folder>
+</Solution>
