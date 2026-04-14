@@ -8,6 +8,7 @@ using TRadeTurk.Application.Features.Assets.Commands;
 using FluentValidation;
 using TRadeTurk.Application.Common.Behaviors;
 using MediatR;
+using TRadeTurk.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,8 @@ builder.Services.AddMediatR(cfg => {
 builder.Services.AddValidatorsFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
