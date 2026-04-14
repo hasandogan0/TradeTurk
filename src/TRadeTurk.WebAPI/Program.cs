@@ -5,6 +5,9 @@ using TRadeTurk.Infrastructure.Repositories;
 using TRadeTurk.Infrastructure.Services;
 using TRadeTurk.Infrastructure.BackgroundJobs;
 using TRadeTurk.Application.Features.Assets.Commands;
+using FluentValidation;
+using TRadeTurk.Application.Common.Behaviors;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +33,13 @@ builder.Services.AddScoped<IBinanceService, BinanceProxyService>();
 builder.Services.AddHostedService<BinanceDataWorker>();
 
 // Dependency Injection - MediatR (CQRS)
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(BuyAssetCommandHandler).Assembly));
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+
+// FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
 
 var app = builder.Build();
 
