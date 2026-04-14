@@ -2,6 +2,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TRadeTurk.Domain.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using TRadeTurk.Infrastructure.Hubs;
 
 namespace TRadeTurk.Infrastructure.BackgroundJobs;
 
@@ -12,11 +14,13 @@ public class BinanceDataWorker : BackgroundService
 {
     private readonly ILogger<BinanceDataWorker> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IHubContext<PriceHub> _hubContext;
 
-    public BinanceDataWorker(ILogger<BinanceDataWorker> logger, IServiceProvider serviceProvider)
+    public BinanceDataWorker(ILogger<BinanceDataWorker> logger, IServiceProvider serviceProvider, IHubContext<PriceHub> hubContext)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _hubContext = hubContext;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -37,6 +41,9 @@ public class BinanceDataWorker : BackgroundService
                     decimal price = await binanceService.GetCurrentPriceAsync(symbol, stoppingToken);
                     _logger.LogInformation("Worker retrieved current price for {Symbol}: {Price}", symbol, price);
                     
+                    // SignalR Hub üzerinden tüm istemcilere fiyatı duyur
+                    await _hubContext.Clients.All.SendAsync("ReceivePriceUpdate", symbol, price, stoppingToken);
+
                     // TODO: Mediator/CQRS entegrasyonu ile fiyat değişiklikleri Handle edilmeli.
                     // var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
                     // await mediator.Publish(new PriceUpdatedEvent(symbol, price));

@@ -9,6 +9,7 @@ using FluentValidation;
 using TRadeTurk.Application.Common.Behaviors;
 using MediatR;
 using TRadeTurk.WebAPI.Middleware;
+using TRadeTurk.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,9 @@ builder.Services.AddMediatR(cfg => {
 // FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
 
+// SignalR
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -58,5 +62,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<PriceHub>("/priceHub");
 
 app.Run();
