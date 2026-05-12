@@ -11,12 +11,13 @@ public class BinanceProxyService : IBinanceService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<BinanceProxyService> _logger;
-    // Gerçek servis (HttpClient vb.) inject edilebilir, simülasyon nedeniyle mocklanmıştır.
+    private readonly BinanceService _realBinanceService;
 
-    public BinanceProxyService(IMemoryCache cache, ILogger<BinanceProxyService> logger)
+    public BinanceProxyService(IMemoryCache cache, ILogger<BinanceProxyService> logger, BinanceService realBinanceService)
     {
         _cache = cache;
         _logger = logger;
+        _realBinanceService = realBinanceService;
     }
 
     public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
@@ -30,29 +31,20 @@ public class BinanceProxyService : IBinanceService
             return cachedPrice;
         }
 
-        _logger.LogInformation("Fetching real-time price from 'Binance API' for {Symbol}...", symbol);
+        _logger.LogInformation("Cache miss for {Symbol}. Fetching real-time price from Binance API...", symbol);
         
-        // Simüle edilmiş API isteği bekleme süresi
-        await Task.Delay(500, cancellationToken); 
-        decimal realTimePrice = GenerateSimulatedPrice(symbol);
+        // Gerçek servisten veriyi çek
+        decimal realTimePrice = await _realBinanceService.GetCurrentPriceAsync(symbol, cancellationToken);
 
-        // Hız Sınırı ve Limitlerini aşmamak için 2 dakikalık önbellek süresi
-        var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(2));
-            
-        _cache.Set(cacheKey, realTimePrice, cacheEntryOptions);
+        if (realTimePrice > 0)
+        {
+            // Hız Sınırı ve Limitlerini aşmamak için 1 dakikalık önbellek süresi (Gerçek veri olduğu için süreyi kısalttık)
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
+                
+            _cache.Set(cacheKey, realTimePrice, cacheEntryOptions);
+        }
 
         return realTimePrice;
-    }
-    
-    // Yardımcı: Sadece testler / simülasyon için kurgulanmış piyasa fiyatları
-    private decimal GenerateSimulatedPrice(string symbol)
-    {
-        return symbol switch 
-        {
-            "BTCUSDT" => 68500.50m + (decimal)(new Random().NextDouble() * 10 - 5), // Rastgele volatilite simülasyonu
-            "ETHUSDT" => 3500.25m + (decimal)(new Random().NextDouble() * 5 - 2.5),
-            _ => 100.0m
-        };
     }
 }

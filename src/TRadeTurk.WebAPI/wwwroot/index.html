@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeTurk | Premium Trading Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📈</span>
+                <span class="logo-text">TRade<span>Turk</span></span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-wallet">
+                    <i data-lucide="wallet"></i>
+                    <span>Cüzdanım</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-history">
+                    <i data-lucide="history"></i>
+                    <span>İşlem Geçmişi</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-settings">
+                    <i data-lucide="settings"></i>
+                    <span>Ayarlar</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">HD</div>
+                    <div class="user-info">
+                        <p class="user-name">Hasan Doğan</p>
+                        <p class="user-status">Pro Trader</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Varlık ara (BTC, ETH, SOL...)" id="asset-search">
+                </div>
+                <div class="top-actions">
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Bağlanıyor...</span>
+                    </div>
+                    <button class="icon-btn">
+                        <i data-lucide="bell"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Welcome Section -->
+                <section class="welcome-section">
+                    <div class="welcome-text">
+                        <h1>Hoş Geldin, <span class="highlight">Hasan</span>!</h1>
+                        <p>Piyasalar şu an hareketli. Bugün ne alıyoruz?</p>
+                    </div>
+                    <div class="fiat-balance-card">
+                        <p class="card-label">Toplam Sanal Bakiye</p>
+                        <h2 id="total-fiat-balance">$50,000.00</h2>
+                        <div class="card-badge">
+                            <i data-lucide="trending-up"></i>
+                            <span>+2.4%</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Market Overview -->
+                <section class="market-section">
+                    <div class="section-header">
+                        <h2>Canlı Piyasalar</h2>
+                        <a href="#" class="view-all">Tümünü Gör</a>
+                    </div>
+                    <div class="price-cards" id="price-cards-container">
+                        <!-- BTC Card -->
+                        <div class="price-card" id="card-BTCUSDT">
+                            <div class="coin-info">
+                                <div class="coin-icon btc">₿</div>
+                                <div class="coin-names">
+                                    <span class="coin-symbol">BTC</span>
+                                    <span class="coin-name">Bitcoin</span>
+                                </div>
+                            </div>
+                            <div class="coin-price">
+                                <span class="price-value" id="price-BTCUSDT">$0.00</span>
+                                <span class="price-change positive" id="change-BTCUSDT">+0.00%</span>
+                            </div>
+                            <div class="card-chart">
+                                <canvas id="chart-BTCUSDT"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- ETH Card -->
+                        <div class="price-card" id="card-ETHUSDT">
+                            <div class="coin-info">
+                                <div class="coin-icon eth">Ξ</div>
+                                <div class="coin-names">
+                                    <span class="coin-symbol">ETH</span>
+                                    <span class="coin-name">Ethereum</span>
+                                </div>
+                            </div>
+                            <div class="coin-price">
+                                <span class="price-value" id="price-ETHUSDT">$0.00</span>
+                                <span class="price-change positive" id="change-ETHUSDT">+0.00%</span>
+                            </div>
+                            <div class="card-chart">
+                                <canvas id="chart-ETHUSDT"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Bottom Grid -->
+                <div class="bottom-grid">
+                    <!-- Quick Trade -->
+                    <section class="trade-panel">
+                        <div class="section-header">
+                            <h2>Hızlı İşlem</h2>
+                        </div>
+                        <div class="trade-card">
+                            <div class="trade-tabs">
+                                <button class="trade-tab active" id="tab-buy">Alış</button>
+                                <button class="trade-tab" id="tab-sell">Satış</button>
+                            </div>
+                            <div class="trade-form">
+                                <div class="input-group">
+                                    <label>Varlık</label>
+                                    <select id="trade-asset-select">
+                                        <option value="BTCUSDT">Bitcoin (BTC)</option>
+                                        <option value="ETHUSDT">Ethereum (ETH)</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Miktar</label>
+                                    <div class="amount-input">
+                                        <input type="number" placeholder="0.00" id="trade-amount">
+                                        <span class="input-unit" id="selected-symbol-unit">BTC</span>
+                                    </div>
+                                </div>
+                                <div class="trade-summary">
+                                    <div class="summary-item">
+                                        <span>Birim Fiyat</span>
+                                        <span id="summary-price">$0.00</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span>Komisyon (0.1%)</span>
+                                        <span id="summary-fee">$0.00</span>
+                                    </div>
+                                    <div class="summary-item total">
+                                        <span>Toplam Tutar</span>
+                                        <span id="summary-total">$0.00</span>
+                                    </div>
+                                </div>
+                                <button class="trade-submit-btn" id="execute-trade-btn">İşlemi Onayla</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Recent Transactions -->
+                    <section class="recent-transactions">
+                        <div class="section-header">
+                            <h2>Son İşlemler</h2>
+                        </div>
+                        <div class="transactions-list" id="transactions-list">
+                            <div class="empty-state">Henüz işlem yapılmadı.</div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SignalR Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

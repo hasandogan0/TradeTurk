@@ -29,7 +29,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Dependency Injection - Services
 builder.Services.AddMemoryCache(); // Proxy Pattern içi mühim
-builder.Services.AddScoped<IBinanceService, BinanceProxyService>();
+builder.Services.AddHttpClient<BinanceService>(); // Real API implementation
+builder.Services.AddScoped<IBinanceService, BinanceProxyService>(); // Proxy/Caching layer
 
 // Dependency Injection - Background Worker
 builder.Services.AddHostedService<BinanceDataWorker>();
@@ -56,6 +57,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

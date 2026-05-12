@@ -1,6 +1,7 @@
 using FluentValidation;
 using TRadeTurk.Domain.Entities;
 using TRadeTurk.Domain.Interfaces;
+using TRadeTurk.Application.Features.Assets.Commands;
 
 namespace TRadeTurk.Application.Features.Assets.Validators;
 
