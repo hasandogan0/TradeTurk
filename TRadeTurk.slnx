@@ -9,6 +9,7 @@
     <Project Path="tests/TRadeTurk.Application.Tests/TRadeTurk.Application.Tests.csproj" />
     <Project Path="tests/TRadeTurk.Domain.Tests/TRadeTurk.Domain.Tests.csproj" />
     <Project Path="tests/TRadeTurk.Infrastructure.Tests/TRadeTurk.Infrastructure.Tests.csproj" />
+    <Project Path="tests/TRadeTurk.UnitTests/TRadeTurk.UnitTests.csproj" />
     <Project Path="tests/TRadeTurk.WebAPI.Tests/TRadeTurk.WebAPI.Tests.csproj" />
   </Folder>
 </Solution>

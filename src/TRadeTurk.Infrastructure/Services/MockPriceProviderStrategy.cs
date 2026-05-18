@@ -16,9 +16,6 @@ public class MockPriceProviderStrategy : IPriceProviderStrategy
     public Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
         var normalizedSymbol = symbol.Trim().ToUpperInvariant();
-        var basePrice = Prices.GetValueOrDefault(normalizedSymbol, 100m);
-        var variation = (decimal)(Random.Shared.NextDouble() - 0.5) * basePrice * 0.01m;
-
-        return Task.FromResult(decimal.Round(basePrice + variation, 4));
+        return Task.FromResult(Prices.GetValueOrDefault(normalizedSymbol, 100m));
     }
 }
