@@ -51,21 +51,5 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Card>()
             .HasQueryFilter(c => !CurrentUserId.HasValue || c.UserId == CurrentUserId.Value);
 
-        modelBuilder.Entity<User>().HasData(new
-        {
-            Id = DemoUserId,
-            UserName = "Demo User",
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            UpdatedAt = (DateTime?)null
-        });
-
-        modelBuilder.Entity<Wallet>().HasData(new
-        {
-            Id = DemoWalletId,
-            UserId = DemoUserId,
-            FiatBalance = 50000m,
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            UpdatedAt = (DateTime?)null
-        });
     }
 }

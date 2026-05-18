@@ -62,3 +62,7 @@ app.MapControllers();
 app.MapHub<PriceHub>("/priceHub");
 
 app.Run();
+
+public partial class Program
+{
+}

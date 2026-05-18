@@ -5,5 +5,5 @@ public abstract class BaseEntity
     public Guid Id { get; protected set; } = Guid.NewGuid();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
-    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+    public byte[]? RowVersion { get; private set; }
 }
