@@ -10,11 +10,20 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
     {
         builder.HasKey(a => a.Id);
 
+        builder.Property(a => a.UserId)
+            .IsRequired();
+
         builder.Property(a => a.Symbol)
             .IsRequired()
             .HasMaxLength(20);
 
         builder.Property(a => a.Amount).HasColumnType("decimal(18, 8)");
         builder.Property(a => a.AverageCost).HasColumnType("decimal(18, 4)");
+
+        builder.Property(a => a.RowVersion)
+            .IsRowVersion();
+
+        builder.HasIndex(a => new { a.UserId, a.WalletId, a.Symbol })
+            .IsUnique();
     }
 }

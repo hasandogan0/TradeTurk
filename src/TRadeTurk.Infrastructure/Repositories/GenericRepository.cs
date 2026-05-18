@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using TRadeTurk.Application.Common.Interfaces;
 using TRadeTurk.Domain.Common;
-using TRadeTurk.Domain.Interfaces;
 using TRadeTurk.Infrastructure.Data;
 
 namespace TRadeTurk.Infrastructure.Repositories;

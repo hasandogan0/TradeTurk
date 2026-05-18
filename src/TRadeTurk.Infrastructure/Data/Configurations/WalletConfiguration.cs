@@ -9,10 +9,16 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
     public void Configure(EntityTypeBuilder<Wallet> builder)
     {
         builder.HasKey(w => w.Id);
+
+        builder.Property(w => w.UserId)
+            .IsRequired();
         
         builder.Property(w => w.FiatBalance)
             .HasColumnType("decimal(18, 4)")
             .IsRequired();
+
+        builder.Property(w => w.RowVersion)
+            .IsRowVersion();
             
         // One-to-Many ilişkiler
         builder.HasMany(w => w.Assets)

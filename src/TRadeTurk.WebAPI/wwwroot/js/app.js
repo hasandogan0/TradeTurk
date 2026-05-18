@@ -1,23 +1,22 @@
-// State Management
+const DEMO_USER_ID = "11111111-1111-1111-1111-111111111111";
+
 const state = {
     prices: {
         BTCUSDT: { price: 0, prevPrice: 0, change: 0 },
         ETHUSDT: { price: 0, prevPrice: 0, change: 0 }
     },
-    fiatBalance: 50000.00,
+    fiatBalance: 0,
     assets: [],
-    transactions: [],
-    currentMode: 'buy', // 'buy' or 'sell'
-    selectedSymbol: 'BTCUSDT'
+    currentMode: 'buy',
+    selectedSymbol: 'BTCUSDT',
+    isSubmitting: false
 };
 
-// SignalR Connection
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/priceHub")
     .withAutomaticReconnect()
     .build();
 
-// Elements
 const elements = {
     connectionStatus: document.getElementById('connection-status'),
     totalFiatBalance: document.getElementById('total-fiat-balance'),
@@ -32,28 +31,60 @@ const elements = {
     unitSpan: document.getElementById('selected-symbol-unit')
 };
 
-// Initialize
 async function init() {
     setupSignalR();
     setupEventListeners();
+    await Promise.all([loadWallet(), loadAssets(), loadInitialPrices()]);
     updateUI();
 }
 
 function setupSignalR() {
     connection.on("ReceivePriceUpdate", (symbol, price) => {
-        handlePriceUpdate(symbol, price);
+        handlePriceUpdate(symbol, Number(price));
     });
 
     connection.start()
         .then(() => {
-            console.log("SignalR Connected.");
             elements.connectionStatus.classList.add('connected');
-            elements.connectionStatus.querySelector('.status-text').innerText = "Canlı Veri Bağlı";
+            elements.connectionStatus.querySelector('.status-text').innerText = "Canli Veri Bagli";
         })
         .catch(err => {
             console.error("SignalR Connection Error: ", err);
-            elements.connectionStatus.querySelector('.status-text').innerText = "Bağlantı Hatası";
+            elements.connectionStatus.querySelector('.status-text').innerText = "Baglanti Hatasi";
         });
+}
+
+async function loadInitialPrices() {
+    await Promise.all(Object.keys(state.prices).map(async (symbol) => {
+        try {
+            const response = await fetch(`/api/prices/${symbol}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            handlePriceUpdate(data.symbol, Number(data.price));
+        } catch (error) {
+            console.error("Price load failed", error);
+        }
+    }));
+}
+
+async function loadWallet() {
+    const response = await fetch(`/api/wallet/${DEMO_USER_ID}`);
+    if (!response.ok) {
+        showToast("Cuzdan bilgisi alinamadi. Migration ve seed verisini kontrol edin.", "error");
+        return;
+    }
+
+    const wallet = await response.json();
+    state.fiatBalance = Number(wallet.fiatBalance);
+    updateUI();
+}
+
+async function loadAssets() {
+    const response = await fetch(`/api/assets/${DEMO_USER_ID}`);
+    if (!response.ok) return;
+
+    state.assets = await response.json();
 }
 
 function handlePriceUpdate(symbol, price) {
@@ -63,27 +94,21 @@ function handlePriceUpdate(symbol, price) {
     state.prices[symbol].prevPrice = prevPrice;
     state.prices[symbol].price = price;
 
-    // Update Card UI
     const priceEl = document.getElementById(`price-${symbol}`);
-    const cardEl = document.getElementById(`card-${symbol}`);
-    
     if (priceEl) {
         priceEl.innerText = formatCurrency(price);
-        
-        // Price animation
+
         if (price > prevPrice) {
             priceEl.className = 'price-value price-up';
         } else if (price < prevPrice) {
             priceEl.className = 'price-value price-down';
         }
 
-        // Remove animation class after 1s to allow re-trigger
         setTimeout(() => {
             priceEl.classList.remove('price-up', 'price-down');
         }, 1000);
     }
 
-    // Update Trade Summary if selected
     if (symbol === state.selectedSymbol) {
         updateTradeSummary();
     }
@@ -96,38 +121,29 @@ function setupEventListeners() {
         updateTradeSummary();
     });
 
-    elements.tradeAmountInput.addEventListener('input', () => {
-        updateTradeSummary();
-    });
+    elements.tradeAmountInput.addEventListener('input', updateTradeSummary);
 
-    elements.tabBuy.addEventListener('click', () => {
-        state.currentMode = 'buy';
-        elements.tabBuy.classList.add('active');
-        elements.tabSell.classList.remove('active');
-        elements.executeBtn.innerText = "Satın Alımı Onayla";
-        elements.executeBtn.style.background = "linear-gradient(90deg, var(--success), #1bd389)";
-        updateTradeSummary();
-    });
+    elements.tabBuy.addEventListener('click', () => setTradeMode('buy'));
+    elements.tabSell.addEventListener('click', () => setTradeMode('sell'));
+    elements.executeBtn.addEventListener('click', executeTrade);
+}
 
-    elements.tabSell.addEventListener('click', () => {
-        state.currentMode = 'sell';
-        elements.tabSell.classList.add('active');
-        elements.tabBuy.classList.remove('active');
-        elements.executeBtn.innerText = "Satışı Onayla";
-        elements.executeBtn.style.background = "linear-gradient(90deg, var(--danger), #ff5e71)";
-        updateTradeSummary();
-    });
-
-    elements.executeBtn.addEventListener('click', () => {
-        executeTrade();
-    });
+function setTradeMode(mode) {
+    state.currentMode = mode;
+    elements.tabBuy.classList.toggle('active', mode === 'buy');
+    elements.tabSell.classList.toggle('active', mode === 'sell');
+    setSubmitButton(false);
+    elements.executeBtn.style.background = mode === 'buy'
+        ? "linear-gradient(90deg, var(--success), #1bd389)"
+        : "linear-gradient(90deg, var(--danger), #ff5e71)";
+    updateTradeSummary();
 }
 
 function updateTradeSummary() {
     const symbol = state.selectedSymbol;
-    const amount = parseFloat(elements.tradeAmountInput.value) || 0;
+    const amount = Number(elements.tradeAmountInput.value) || 0;
     const price = state.prices[symbol].price;
-    const commissionRate = 0.001; // 0.1%
+    const commissionRate = 0.001;
 
     const subtotal = amount * price;
     const fee = subtotal * commissionRate;
@@ -138,45 +154,65 @@ function updateTradeSummary() {
     elements.summaryTotal.innerText = formatCurrency(total);
 }
 
-function executeTrade() {
-    const amount = parseFloat(elements.tradeAmountInput.value);
+async function executeTrade() {
+    const amount = Number(elements.tradeAmountInput.value);
+    const symbol = state.selectedSymbol;
+    const requestedPrice = state.prices[symbol].price;
+
     if (!amount || amount <= 0) {
-        showToast("Lütfen geçerli bir miktar girin.", "error");
+        showToast("Lutfen gecerli bir miktar girin.", "error");
         return;
     }
 
-    const total = parseFloat(elements.summaryTotal.innerText.replace('$', '').replace(',', ''));
-    
-    if (state.currentMode === 'buy' && total > state.fiatBalance) {
-        showToast("Yetersiz bakiye!", "error");
+    if (!requestedPrice || requestedPrice <= 0) {
+        showToast("Fiyat bilgisi henuz hazir degil.", "error");
         return;
     }
 
-    // Simulate API Call
-    elements.executeBtn.disabled = true;
-    elements.executeBtn.innerText = "İşleniyor...";
+    setSubmitButton(true);
 
-    setTimeout(() => {
-        // Mock Success
-        if (state.currentMode === 'buy') {
-            state.fiatBalance -= total;
-        } else {
-            state.fiatBalance += total;
+    try {
+        const endpoint = state.currentMode === 'buy' ? '/api/trade/buy' : '/api/trade/sell';
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: DEMO_USER_ID,
+                symbol,
+                amount,
+                requestedPrice
+            })
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.isSuccess) {
+            showToast(result.message || "Islem basarisiz.", "error");
+            return;
         }
 
-        showToast(`İşlem Başarılı: ${state.selectedSymbol} ${state.currentMode === 'buy' ? 'Alındı' : 'Satıldı'}`, "success");
-        
-        elements.totalFiatBalance.innerText = formatCurrency(state.fiatBalance);
-        elements.executeBtn.disabled = false;
-        elements.executeBtn.innerText = state.currentMode === 'buy' ? "Satın Alımı Onayla" : "Satışı Onayla";
+        showToast(result.message, "success");
         elements.tradeAmountInput.value = "";
-        
-        addTransactionToHistory(state.currentMode, state.selectedSymbol, amount, total);
+        addTransactionToHistory(state.currentMode, symbol, amount, result.executedPrice, result.commissionUsed);
+
+        await Promise.all([loadWallet(), loadAssets()]);
         updateTradeSummary();
-    }, 1500);
+    } catch (error) {
+        console.error("Trade failed", error);
+        showToast("Backend isleminde hata olustu.", "error");
+    } finally {
+        setSubmitButton(false);
+    }
 }
 
-function addTransactionToHistory(type, symbol, amount, total) {
+function setSubmitButton(isLoading) {
+    state.isSubmitting = isLoading;
+    elements.executeBtn.disabled = isLoading;
+    elements.executeBtn.innerText = isLoading
+        ? "Isleniyor..."
+        : (state.currentMode === 'buy' ? "Satin Alimi Onayla" : "Satisi Onayla");
+}
+
+function addTransactionToHistory(type, symbol, amount, executedPrice, commission) {
     const list = document.getElementById('transactions-list');
     const emptyState = list.querySelector('.empty-state');
     if (emptyState) emptyState.remove();
@@ -185,25 +221,23 @@ function addTransactionToHistory(type, symbol, amount, total) {
     item.className = 'transaction-item';
     item.innerHTML = `
         <div class="tx-info">
-            <span class="tx-type ${type}">${type === 'buy' ? 'ALIŞ' : 'SATIŞ'}</span>
+            <span class="tx-type ${type}">${type === 'buy' ? 'ALIS' : 'SATIS'}</span>
             <span class="tx-asset">${symbol.replace('USDT', '')}</span>
         </div>
         <div class="tx-details">
             <span class="tx-amount">${amount}</span>
-            <span class="tx-total">${formatCurrency(total)}</span>
+            <span class="tx-total">${formatCurrency(amount * executedPrice)} (${formatCurrency(commission)} kom.)</span>
         </div>
     `;
     list.prepend(item);
 }
 
-// Helpers
 function formatCurrency(value) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
 }
 
 function showToast(message, type) {
-    // Basic Alert for now, can be improved to a real toast
-    alert(message);
+    alert(`${type === "success" ? "Basarili" : "Hata"}: ${message}`);
 }
 
 function updateUI() {
@@ -211,5 +245,4 @@ function updateUI() {
     elements.unitSpan.innerText = state.selectedSymbol.replace('USDT', '');
 }
 
-// Start
 init();

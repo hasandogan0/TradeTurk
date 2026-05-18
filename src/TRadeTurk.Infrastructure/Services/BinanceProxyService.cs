@@ -1,14 +1,16 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using TRadeTurk.Domain.Interfaces;
+using TRadeTurk.Application.Common.Interfaces;
 
 namespace TRadeTurk.Infrastructure.Services;
 
 /// <summary>
-/// Proxy Pattern: Binance API çağrılarını hız sınırlarına takılmamak ve performansı artırmak için Cache'leyen yapı.
+/// Proxy Pattern: Binance API calls are cached, rate limited and protected with fallback data.
 /// </summary>
-public class BinanceProxyService : IBinanceService
+public class BinanceProxyService : IBinancePriceService
 {
+    private static readonly SemaphoreSlim RateLimitGate = new(1, 1);
+
     private readonly IMemoryCache _cache;
     private readonly ILogger<BinanceProxyService> _logger;
     private readonly BinanceService _realBinanceService;
@@ -22,29 +24,48 @@ public class BinanceProxyService : IBinanceService
 
     public async Task<decimal> GetCurrentPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"Binance_Price_{symbol}";
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        var cacheKey = $"Binance_Price_{normalizedSymbol}";
+        var fallbackKey = $"Binance_LastGoodPrice_{normalizedSymbol}";
 
-        // Proxy Cache Kontrolü
         if (_cache.TryGetValue(cacheKey, out decimal cachedPrice))
         {
-            _logger.LogInformation("Price for {Symbol} retrieved from cache (PROXY used).", symbol);
+            _logger.LogInformation("Price for {Symbol} retrieved from proxy cache.", normalizedSymbol);
             return cachedPrice;
         }
 
-        _logger.LogInformation("Cache miss for {Symbol}. Fetching real-time price from Binance API...", symbol);
-        
-        // Gerçek servisten veriyi çek
-        decimal realTimePrice = await _realBinanceService.GetCurrentPriceAsync(symbol, cancellationToken);
-
-        if (realTimePrice > 0)
+        await RateLimitGate.WaitAsync(cancellationToken);
+        try
         {
-            // Hız Sınırı ve Limitlerini aşmamak için 1 dakikalık önbellek süresi (Gerçek veri olduğu için süreyi kısalttık)
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
-                
-            _cache.Set(cacheKey, realTimePrice, cacheEntryOptions);
-        }
+            if (_cache.TryGetValue(cacheKey, out cachedPrice))
+            {
+                return cachedPrice;
+            }
 
-        return realTimePrice;
+            var realTimePrice = await _realBinanceService.GetCurrentPriceAsync(normalizedSymbol, cancellationToken);
+
+            if (realTimePrice > 0)
+            {
+                _cache.Set(cacheKey, realTimePrice, TimeSpan.FromSeconds(30));
+                _cache.Set(fallbackKey, realTimePrice, TimeSpan.FromMinutes(10));
+            }
+
+            return realTimePrice;
+        }
+        catch (Exception ex)
+        {
+            if (_cache.TryGetValue(fallbackKey, out decimal fallbackPrice))
+            {
+                _logger.LogWarning(ex, "Binance failed for {Symbol}. Returning fallback price.", normalizedSymbol);
+                return fallbackPrice;
+            }
+
+            throw;
+        }
+        finally
+        {
+            _ = Task.Delay(250, CancellationToken.None)
+                .ContinueWith(_ => RateLimitGate.Release(), CancellationToken.None);
+        }
     }
 }

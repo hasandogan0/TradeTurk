@@ -1,11 +1,11 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using TRadeTurk.Domain.Interfaces;
+using TRadeTurk.Application.Common.Interfaces;
 
 namespace TRadeTurk.Infrastructure.Services;
 
-public class BinanceService : IBinanceService
+public class BinanceService : IBinancePriceService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<BinanceService> _logger;

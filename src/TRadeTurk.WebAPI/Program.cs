@@ -1,57 +1,51 @@
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TRadeTurk.Application.Common.Behaviors;
+using TRadeTurk.Application.Common.Interfaces;
+using TRadeTurk.Application.Features.Assets.Commands;
+using TRadeTurk.Infrastructure.BackgroundJobs;
 using TRadeTurk.Infrastructure.Data;
-using TRadeTurk.Domain.Interfaces;
+using TRadeTurk.Infrastructure.Hubs;
 using TRadeTurk.Infrastructure.Repositories;
 using TRadeTurk.Infrastructure.Services;
-using TRadeTurk.Infrastructure.BackgroundJobs;
-using TRadeTurk.Application.Features.Assets.Commands;
-using FluentValidation;
-using TRadeTurk.Application.Common.Behaviors;
-using MediatR;
 using TRadeTurk.WebAPI.Middleware;
-using TRadeTurk.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Dependency Injection - Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 
-// Dependency Injection - Services
-builder.Services.AddMemoryCache(); // Proxy Pattern içi mühim
-builder.Services.AddHttpClient<BinanceService>(); // Real API implementation
-builder.Services.AddScoped<IBinanceService, BinanceProxyService>(); // Proxy/Caching layer
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<BinanceService>();
+builder.Services.AddScoped<IBinancePriceService, BinanceProxyService>();
+builder.Services.AddScoped<IPriceProviderStrategy, BinancePriceProviderStrategy>();
+builder.Services.AddScoped<IPriceProviderStrategy, MockPriceProviderStrategy>();
+builder.Services.AddScoped<IPriceProviderContext, PriceProviderContext>();
 
-// Dependency Injection - Background Worker
 builder.Services.AddHostedService<BinanceDataWorker>();
 
-// Dependency Injection - MediatR (CQRS)
-builder.Services.AddMediatR(cfg => {
+builder.Services.AddMediatR(cfg =>
+{
     cfg.RegisterServicesFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
-// FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
-
-// SignalR
 builder.Services.AddSignalR();
 
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -62,7 +56,6 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();

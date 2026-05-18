@@ -4,6 +4,7 @@ namespace TRadeTurk.Domain.Entities;
 
 public class Wallet : BaseEntity
 {
+    public Guid UserId { get; private set; }
     public decimal FiatBalance { get; private set; } // TRY or USDT balance
     
     // Navigation properties
@@ -14,6 +15,15 @@ public class Wallet : BaseEntity
     public Wallet()
     {
         FiatBalance = 0;
+    }
+
+    public Wallet(Guid userId, decimal initialFiatBalance = 0)
+    {
+        if (userId == Guid.Empty) throw new ArgumentException("UserId must be valid.");
+        if (initialFiatBalance < 0) throw new ArgumentException("Initial balance cannot be negative.");
+
+        UserId = userId;
+        FiatBalance = initialFiatBalance;
     }
 
     public void AddFiat(decimal amount)

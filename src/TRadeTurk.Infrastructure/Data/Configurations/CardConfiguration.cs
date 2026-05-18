@@ -10,6 +10,9 @@ public class CardConfiguration : IEntityTypeConfiguration<Card>
     {
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.UserId)
+            .IsRequired();
+
         builder.Property(c => c.CardHolderName).HasMaxLength(100).IsRequired();
         builder.Property(c => c.CardNumber).HasMaxLength(16).IsRequired();
         builder.Property(c => c.ExpiryDate).HasMaxLength(5).IsRequired();

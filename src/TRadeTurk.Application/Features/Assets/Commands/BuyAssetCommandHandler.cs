@@ -1,8 +1,8 @@
 using MediatR;
+using TRadeTurk.Application.Common.Interfaces;
 using TRadeTurk.Application.DTOs;
 using TRadeTurk.Domain.Entities;
 using TRadeTurk.Domain.Enums;
-using TRadeTurk.Domain.Interfaces;
 
 namespace TRadeTurk.Application.Features.Assets.Commands;
 
@@ -12,57 +12,60 @@ public class BuyAssetCommandHandler : IRequestHandler<BuyAssetCommand, Transacti
     private readonly IRepository<Asset> _assetRepository;
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IBinanceService _binanceService;
+    private readonly IPriceProviderContext _priceProviderContext;
 
-    private const decimal CommissionRate = 0.001m; // %0.1 Komisyon
+    private const decimal CommissionRate = 0.001m;
 
     public BuyAssetCommandHandler(
         IRepository<Wallet> walletRepository,
         IRepository<Asset> assetRepository,
         IRepository<Transaction> transactionRepository,
         IUnitOfWork unitOfWork,
-        IBinanceService binanceService)
+        IPriceProviderContext priceProviderContext)
     {
         _walletRepository = walletRepository;
         _assetRepository = assetRepository;
         _transactionRepository = transactionRepository;
         _unitOfWork = unitOfWork;
-        _binanceService = binanceService;
+        _priceProviderContext = priceProviderContext;
     }
 
     public async Task<TransactionResultDto> Handle(BuyAssetCommand request, CancellationToken cancellationToken)
     {
-        var wallet = await _walletRepository.GetByIdAsync(request.WalletId, cancellationToken);
-        if (wallet == null) return new TransactionResultDto { IsSuccess = false, Message = "Cüzdan bulunamadı." };
+        var symbol = request.Symbol.Trim().ToUpperInvariant();
+        var wallet = (await _walletRepository.FindAsync(w => w.UserId == request.UserId, cancellationToken)).FirstOrDefault();
 
-        // 1. İşlem Ağ Onay Gecikmesi (Slippage ortamı oluşturmak için)
-        await Task.Delay(1000, cancellationToken);
+        if (wallet == null)
+        {
+            return new TransactionResultDto { IsSuccess = false, Message = "Cuzdan bulunamadi." };
+        }
 
-        // 2. Gerçek Fiyatı Al ve Slippage Simülasyonu (%0.05 ile %0.2 arası fiyat kayması)
-        decimal actualPrice = await _binanceService.GetCurrentPriceAsync(request.Symbol, cancellationToken);
-        decimal slippagePercentage = (decimal)(new Random().NextDouble() * (0.002 - 0.0005) + 0.0005);
-        
-        decimal executedPrice = actualPrice * (1 + slippagePercentage); // Alımda fiyat kullanıcı aleyhine artar
-        decimal slippageDifference = executedPrice - request.RequestedPrice;
+        var actualPrice = await _priceProviderContext.GetCurrentPriceAsync(symbol, cancellationToken);
+        if (actualPrice <= 0)
+        {
+            return new TransactionResultDto { IsSuccess = false, Message = "Guncel fiyat alinamadi." };
+        }
 
-        // 3. Maliyet Hesaplamaları
-        decimal cost = request.Amount * executedPrice;
-        decimal commission = cost * CommissionRate;
-        decimal totalDeduct = cost + commission;
+        var slippagePercentage = (decimal)(Random.Shared.NextDouble() * (0.002 - 0.0005) + 0.0005);
+        var executedPrice = actualPrice * (1 + slippagePercentage);
+        var slippageDifference = executedPrice - request.RequestedPrice;
+
+        var cost = request.Amount * executedPrice;
+        var commission = cost * CommissionRate;
+        var totalDeduct = cost + commission;
 
         try
         {
-            // Bakiye düş (Yetersizse Exception fırlatır)
             wallet.DeductFiat(totalDeduct);
             _walletRepository.Update(wallet);
 
-            // Asset yönetimi
-            var existingAssets = await _assetRepository.FindAsync(a => a.WalletId == request.WalletId && a.Symbol == request.Symbol, cancellationToken);
-            var asset = existingAssets.FirstOrDefault();
-            
+            var asset = (await _assetRepository.FindAsync(
+                a => a.UserId == request.UserId && a.WalletId == wallet.Id && a.Symbol == symbol,
+                cancellationToken)).FirstOrDefault();
+
             if (asset == null)
             {
-                asset = new Asset(wallet.Id, request.Symbol);
+                asset = new Asset(request.UserId, wallet.Id, symbol);
                 asset.AddAmount(request.Amount, executedPrice);
                 await _assetRepository.AddAsync(asset, cancellationToken);
             }
@@ -72,8 +75,7 @@ public class BuyAssetCommandHandler : IRequestHandler<BuyAssetCommand, Transacti
                 _assetRepository.Update(asset);
             }
 
-            // Transaction History kaydı
-            var transaction = new Transaction(wallet.Id, TransactionType.Buy, request.Symbol, request.Amount, executedPrice, commission, slippageDifference);
+            var transaction = new Transaction(request.UserId, wallet.Id, TransactionType.Buy, symbol, request.Amount, executedPrice, commission, slippageDifference);
             transaction.MarkAsCompleted();
             await _transactionRepository.AddAsync(transaction, cancellationToken);
 
@@ -82,7 +84,7 @@ public class BuyAssetCommandHandler : IRequestHandler<BuyAssetCommand, Transacti
             return new TransactionResultDto
             {
                 IsSuccess = true,
-                Message = "Alım başarıyla gerçekleşti.",
+                Message = "Alim basariyla gerceklesti.",
                 TransactionId = transaction.Id,
                 ExecutedPrice = executedPrice,
                 CommissionUsed = commission,

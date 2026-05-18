@@ -5,6 +5,7 @@ namespace TRadeTurk.Domain.Entities;
 
 public class Transaction : BaseEntity
 {
+    public Guid UserId { get; private set; }
     public Guid WalletId { get; private set; }
     public Wallet Wallet { get; private set; } = null!;
 
@@ -19,11 +20,18 @@ public class Transaction : BaseEntity
 
     private Transaction() { } // EF Core
 
-    public Transaction(Guid walletId, TransactionType type, string? symbol, decimal amount, decimal price, decimal commission, decimal slippage)
+    public Transaction(Guid userId, Guid walletId, TransactionType type, string? symbol, decimal amount, decimal price, decimal commission, decimal slippage)
     {
+        if (userId == Guid.Empty) throw new ArgumentException("UserId must be valid.");
+        if (walletId == Guid.Empty) throw new ArgumentException("WalletId must be valid.");
+        if (amount <= 0) throw new ArgumentException("Amount must be greater than zero.");
+        if (price <= 0) throw new ArgumentException("Price must be greater than zero.");
+        if (commission < 0) throw new ArgumentException("Commission cannot be negative.");
+
+        UserId = userId;
         WalletId = walletId;
         Type = type;
-        Symbol = symbol;
+        Symbol = symbol?.Trim().ToUpperInvariant();
         Amount = amount;
         Price = price;
         Commission = commission;

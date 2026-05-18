@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using TRadeTurk.Domain.Interfaces;
+using TRadeTurk.Application.Common.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using TRadeTurk.Infrastructure.Hubs;
 
@@ -32,13 +32,13 @@ public class BinanceDataWorker : BackgroundService
             try
             {
                 using var scope = _serviceProvider.CreateScope();
-                var binanceService = scope.ServiceProvider.GetRequiredService<IBinanceService>();
+                var priceProvider = scope.ServiceProvider.GetRequiredService<IPriceProviderContext>();
 
                 var symbolsToTrack = new[] { "BTCUSDT", "ETHUSDT" };
 
                 foreach (var symbol in symbolsToTrack)
                 {
-                    decimal price = await binanceService.GetCurrentPriceAsync(symbol, stoppingToken);
+                    decimal price = await priceProvider.GetCurrentPriceAsync(symbol, stoppingToken);
                     _logger.LogInformation("Worker retrieved current price for {Symbol}: {Price}", symbol, price);
                     
                     // SignalR Hub üzerinden tüm istemcilere fiyatı duyur

@@ -4,6 +4,7 @@ namespace TRadeTurk.Domain.Entities;
 
 public class Asset : BaseEntity
 {
+    public Guid UserId { get; private set; }
     public Guid WalletId { get; private set; }
     public Wallet Wallet { get; private set; } = null!;
 
@@ -15,10 +16,15 @@ public class Asset : BaseEntity
         Symbol = string.Empty;
     }
 
-    public Asset(Guid walletId, string symbol)
+    public Asset(Guid userId, Guid walletId, string symbol)
     {
+        if (userId == Guid.Empty) throw new ArgumentException("UserId must be valid.");
+        if (walletId == Guid.Empty) throw new ArgumentException("WalletId must be valid.");
+        if (string.IsNullOrWhiteSpace(symbol)) throw new ArgumentException("Symbol cannot be empty.");
+
+        UserId = userId;
         WalletId = walletId;
-        Symbol = symbol;
+        Symbol = symbol.Trim().ToUpperInvariant();
         Amount = 0;
         AverageCost = 0;
     }

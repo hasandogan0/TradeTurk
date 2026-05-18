@@ -10,6 +10,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
     {
         builder.HasKey(t => t.Id);
 
+        builder.Property(t => t.UserId)
+            .IsRequired();
+
         builder.Property(t => t.Amount).HasColumnType("decimal(18, 8)");
         builder.Property(t => t.Price).HasColumnType("decimal(18, 4)");
         builder.Property(t => t.Commission).HasColumnType("decimal(18, 4)");
@@ -17,5 +20,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         
         builder.Property(t => t.Symbol)
             .HasMaxLength(20);
+
+        builder.Property(t => t.RowVersion)
+            .IsRowVersion();
     }
 }
