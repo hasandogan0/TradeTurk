@@ -18,16 +18,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 name: "ExpiryDate",
                 table: "Cards");
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Wallets",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
-
             migrationBuilder.AlterColumn<string>(
                 name: "UserName",
                 table: "Users",
@@ -36,16 +26,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 nullable: false,
                 oldClrType: typeof(string),
                 oldType: "nvarchar(max)");
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Users",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Email",
@@ -87,26 +67,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "dark");
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Transactions",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Cards",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
-
             migrationBuilder.AddColumn<string>(
                 name: "CvvHash",
                 table: "Cards",
@@ -144,16 +104,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                     ExpiryMonth = CASE WHEN ExpiryMonth = 0 THEN 12 ELSE ExpiryMonth END,
                     ExpiryYear = CASE WHEN ExpiryYear = 0 THEN YEAR(GETUTCDATE()) + 5 ELSE ExpiryYear END
                 """);
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Assets",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -211,18 +161,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 name: "ExpiryYear",
                 table: "Cards");
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Wallets",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
-
             migrationBuilder.AlterColumn<string>(
                 name: "UserName",
                 table: "Users",
@@ -231,42 +169,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 oldClrType: typeof(string),
                 oldType: "nvarchar(80)",
                 oldMaxLength: 80);
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Users",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Transactions",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Cards",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Cvv",
@@ -284,17 +186,6 @@ namespace TRadeTurk.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                table: "Assets",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
         }
     }
 }
