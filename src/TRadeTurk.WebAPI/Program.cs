@@ -107,6 +107,12 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PriceHub>("/priceHub");
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.EnsureCreated();
+}
+
 app.Run();
 
 public partial class Program
