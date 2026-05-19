@@ -31,23 +31,26 @@ public class ExceptionHandlingMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        
+
         var statusCode = (int)HttpStatusCode.InternalServerError;
-        string message = "Sunucu tarafında bir hata oluştu.";
+        var message = "Sunucu tarafinda bir hata olustu.";
         object? errors = null;
 
         switch (exception)
         {
             case ValidationException validationException:
                 statusCode = (int)HttpStatusCode.BadRequest;
-                message = "Validasyon hatası oluştu.";
+                message = "Lutfen formdaki bilgileri kontrol edin.";
                 errors = validationException.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
                 break;
             case InvalidOperationException invalidOperationException:
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = invalidOperationException.Message;
                 break;
-            // Diğer özel exception tipleri buraya eklenebilir
+            case ArgumentException argumentException:
+                statusCode = (int)HttpStatusCode.BadRequest;
+                message = argumentException.Message;
+                break;
         }
 
         context.Response.StatusCode = statusCode;
