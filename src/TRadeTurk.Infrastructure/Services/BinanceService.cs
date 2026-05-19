@@ -1,11 +1,13 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using TRadeTurk.Application.Common;
 using TRadeTurk.Application.Common.Interfaces;
+using TRadeTurk.Application.DTOs;
 
 namespace TRadeTurk.Infrastructure.Services;
 
-public class BinanceService : IBinancePriceService
+public class BinanceService : IBinancePriceService, IMarketDataService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<BinanceService> _logger;
@@ -46,9 +48,68 @@ public class BinanceService : IBinancePriceService
         }
     }
 
+    public async Task<MarketTickerDto> GetTickerAsync(string symbol, CancellationToken cancellationToken = default)
+    {
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        var response = await _httpClient.GetFromJsonAsync<BinanceTickerResponse>(
+            $"{_baseUrl}ticker/24hr?symbol={normalizedSymbol}", cancellationToken);
+
+        return response == null ? EmptyTicker(normalizedSymbol) : MapTicker(response);
+    }
+
+    public async Task<IReadOnlyCollection<MarketTickerDto>> GetTickersAsync(IReadOnlyCollection<string> symbols, CancellationToken cancellationToken = default)
+    {
+        var supported = symbols.Select(s => s.Trim().ToUpperInvariant()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var response = await _httpClient.GetFromJsonAsync<List<BinanceTickerResponse>>($"{_baseUrl}ticker/24hr", cancellationToken);
+
+        if (response == null)
+        {
+            return supported.Select(EmptyTicker).ToArray();
+        }
+
+        return response
+            .Where(t => supported.Contains(t.Symbol))
+            .Select(MapTicker)
+            .OrderBy(t => Array.IndexOf(MarketSymbols.Supported.ToArray(), t.Symbol))
+            .ToArray();
+    }
+
+    private static MarketTickerDto MapTicker(BinanceTickerResponse response)
+    {
+        return new MarketTickerDto
+        {
+            Symbol = response.Symbol,
+            Price = ParseDecimal(response.LastPrice),
+            ChangePercent24h = ParseDecimal(response.PriceChangePercent),
+            High24h = ParseDecimal(response.HighPrice),
+            Low24h = ParseDecimal(response.LowPrice),
+            Volume24h = ParseDecimal(response.Volume),
+            RetrievedAtUtc = DateTime.UtcNow
+        };
+    }
+
+    private static MarketTickerDto EmptyTicker(string symbol) => new() { Symbol = symbol, RetrievedAtUtc = DateTime.UtcNow };
+
+    private static decimal ParseDecimal(string value)
+    {
+        return decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var result)
+            ? result
+            : 0;
+    }
+
     private class BinancePriceResponse
     {
         public string Symbol { get; set; } = string.Empty;
         public string Price { get; set; } = string.Empty;
+    }
+
+    private class BinanceTickerResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string LastPrice { get; set; } = "0";
+        public string PriceChangePercent { get; set; } = "0";
+        public string HighPrice { get; set; } = "0";
+        public string LowPrice { get; set; } = "0";
+        public string Volume { get; set; } = "0";
     }
 }

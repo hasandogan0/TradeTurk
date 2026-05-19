@@ -37,6 +37,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IHostedService>();
             services.RemoveAll<IPriceProviderContext>();
+            services.RemoveAll<IMarketDataService>();
 
             _connection.Open();
 
@@ -44,6 +45,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseSqlite(_connection));
 
             services.AddScoped<IPriceProviderContext, FixedPriceProviderContext>();
+            services.AddScoped<IMarketDataService, FixedMarketDataService>();
 
             using var scope = services.BuildServiceProvider().CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -86,6 +88,41 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 "ETHUSDT" => 3000m,
                 _ => 100m
             });
+        }
+    }
+
+    private sealed class FixedMarketDataService : IMarketDataService
+    {
+        public Task<TRadeTurk.Application.DTOs.MarketTickerDto> GetTickerAsync(string symbol, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Create(symbol));
+        }
+
+        public Task<IReadOnlyCollection<TRadeTurk.Application.DTOs.MarketTickerDto>> GetTickersAsync(IReadOnlyCollection<string> symbols, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyCollection<TRadeTurk.Application.DTOs.MarketTickerDto>>(symbols.Select(Create).ToArray());
+        }
+
+        private static TRadeTurk.Application.DTOs.MarketTickerDto Create(string symbol)
+        {
+            var price = symbol.Trim().ToUpperInvariant() switch
+            {
+                "BTCUSDT" => 50000m,
+                "ETHUSDT" => 3000m,
+                "SOLUSDT" => 150m,
+                _ => 100m
+            };
+
+            return new TRadeTurk.Application.DTOs.MarketTickerDto
+            {
+                Symbol = symbol.Trim().ToUpperInvariant(),
+                Price = price,
+                ChangePercent24h = 2.5m,
+                High24h = price * 1.05m,
+                Low24h = price * 0.95m,
+                Volume24h = 123456m,
+                RetrievedAtUtc = DateTime.UtcNow
+            };
         }
     }
 }

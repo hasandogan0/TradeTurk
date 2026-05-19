@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { z } from 'zod';
 import { API_BASE_URL } from './config';
-import type { AuthResultDto, PortfolioSummaryDto, TradeMode, TradeResultDto, TransactionDto, UserDto, WalletDto } from './types';
+import type { AuthResultDto, MarketTickerDto, PortfolioSummaryDto, TradeMode, TradeResultDto, TransactionDto, UserDto, WalletDto } from './types';
 
 const TOKEN_KEY = 'tradeturk_token';
 
@@ -106,6 +106,16 @@ export async function getTransactions(): Promise<TransactionDto[]> {
 
 export async function getPortfolioSummary(): Promise<PortfolioSummaryDto> {
   const response = await api.get<PortfolioSummaryDto>('/api/portfolio/summary/me');
+  return response.data;
+}
+
+export async function getMarketSymbols(): Promise<string[]> {
+  const response = await api.get<string[]>('/api/markets/symbols');
+  return response.data;
+}
+
+export async function getMarketTickers(): Promise<MarketTickerDto[]> {
+  const response = await api.get<MarketTickerDto[]>('/api/markets/tickers');
   return response.data;
 }
 

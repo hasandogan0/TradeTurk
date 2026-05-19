@@ -1,15 +1,13 @@
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
+using TRadeTurk.Application.Common;
 using TRadeTurk.Application.Common.Interfaces;
-using Microsoft.AspNetCore.SignalR;
 using TRadeTurk.Infrastructure.Hubs;
 
 namespace TRadeTurk.Infrastructure.BackgroundJobs;
 
-/// <summary>
-/// 2-3 dakikada bir Binance'ten veri çeken Background Service (Worker)
-/// </summary>
 public class BinanceDataWorker : BackgroundService
 {
     private readonly ILogger<BinanceDataWorker> _logger;
@@ -25,42 +23,34 @@ public class BinanceDataWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Binance Data Worker started. Simulating periodic external data fetching.");
+        _logger.LogInformation("Binance Data Worker started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var scope = _serviceProvider.CreateScope();
-                var priceProvider = scope.ServiceProvider.GetRequiredService<IPriceProviderContext>();
+                var marketData = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+                var tickers = await marketData.GetTickersAsync(MarketSymbols.Supported, stoppingToken);
 
-                var symbolsToTrack = new[] { "BTCUSDT", "ETHUSDT" };
-
-                foreach (var symbol in symbolsToTrack)
+                foreach (var ticker in tickers)
                 {
-                    decimal price = await priceProvider.GetCurrentPriceAsync(symbol, stoppingToken);
-                    _logger.LogInformation("Worker retrieved current price for {Symbol}: {Price}", symbol, price);
-                    
-                    // SignalR Hub üzerinden tüm istemcilere fiyatı duyur
-                    await _hubContext.Clients.All.SendAsync("ReceivePriceUpdate", symbol, price, stoppingToken);
-
-                    // TODO: Mediator/CQRS entegrasyonu ile fiyat değişiklikleri Handle edilmeli.
-                    // var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-                    // await mediator.Publish(new PriceUpdatedEvent(symbol, price));
+                    _logger.LogInformation("Worker retrieved current price for {Symbol}: {Price}", ticker.Symbol, ticker.Price);
+                    await _hubContext.Clients.All.SendAsync("ReceivePriceUpdate", ticker.Symbol, ticker.Price, stoppingToken);
+                    await _hubContext.Clients.All.SendAsync("ReceiveTickerUpdate", ticker, stoppingToken);
                 }
 
-                // API hız limitleri (Rate Limiting) simülasyonu için 2 ile 3 dakika arasında bekleme
-                int delayMinutes = new Random().Next(2, 4); 
+                var delayMinutes = new Random().Next(2, 4);
                 _logger.LogInformation("Worker resting for {DelayMinutes} minutes to respect API rate limits...", delayMinutes);
                 await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred in Binance Data Worker while trying to fetch data.");
+                _logger.LogError(ex, "Error occurred in Binance Data Worker while trying to fetch market data.");
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
             }
         }
-        
+
         _logger.LogInformation("Binance Data Worker shutting down.");
     }
 }

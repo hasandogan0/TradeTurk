@@ -5,6 +5,10 @@ export type PriceState = {
   symbol: string;
   price: number;
   previousPrice: number;
+  changePercent24h?: number;
+  high24h?: number;
+  low24h?: number;
+  volume24h?: number;
 };
 
 export type UserDto = {
@@ -61,7 +65,12 @@ export type PortfolioSummaryDto = {
   totalPortfolioValue: number;
   availableUsdt: number;
   totalAssetValue: number;
+  totalPnl: number;
+  dailyPnl: number;
+  weeklyPnl: number;
   unrealizedPnl: number;
+  bestPerformer?: AssetAllocationDto | null;
+  worstPerformer?: AssetAllocationDto | null;
   assetAllocation: AssetAllocationDto[];
 };
 
@@ -82,4 +91,14 @@ export type TradeResultDto = {
   executedPrice: number;
   commissionUsed: number;
   slippageAmount: number;
+};
+
+export type MarketTickerDto = {
+  symbol: string;
+  price: number;
+  changePercent24h: number;
+  high24h: number;
+  low24h: number;
+  volume24h: number;
+  retrievedAtUtc: string;
 };

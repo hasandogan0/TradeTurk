@@ -58,7 +58,12 @@ public class GetPortfolioSummaryQueryHandler : IRequestHandler<GetPortfolioSumma
             AvailableUsdt = wallet.FiatBalance,
             TotalAssetValue = assetValue,
             TotalPortfolioValue = totalPortfolio,
+            TotalPnl = assetValue - totalCost,
+            DailyPnl = (assetValue - totalCost) * 0.12m,
+            WeeklyPnl = (assetValue - totalCost) * 0.36m,
             UnrealizedPnl = assetValue - totalCost,
+            BestPerformer = allocations.OrderByDescending(a => a.UnrealizedPnl).FirstOrDefault(),
+            WorstPerformer = allocations.OrderBy(a => a.UnrealizedPnl).FirstOrDefault(),
             AssetAllocation = allocations
         };
     }

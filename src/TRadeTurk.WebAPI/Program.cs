@@ -50,6 +50,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<BinanceService>();
 builder.Services.AddScoped<IBinancePriceService, BinanceProxyService>();
+builder.Services.AddScoped<IMarketDataService, BinanceProxyService>();
 builder.Services.AddScoped<IPriceProviderStrategy, BinancePriceProviderStrategy>();
 builder.Services.AddScoped<IPriceProviderStrategy, MockPriceProviderStrategy>();
 builder.Services.AddScoped<IPriceProviderContext, PriceProviderContext>();

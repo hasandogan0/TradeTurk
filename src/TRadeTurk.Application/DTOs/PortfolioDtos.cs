@@ -35,7 +35,12 @@ public class PortfolioSummaryDto
     public decimal TotalPortfolioValue { get; set; }
     public decimal AvailableUsdt { get; set; }
     public decimal TotalAssetValue { get; set; }
+    public decimal TotalPnl { get; set; }
+    public decimal DailyPnl { get; set; }
+    public decimal WeeklyPnl { get; set; }
     public decimal UnrealizedPnl { get; set; }
+    public AssetAllocationDto? BestPerformer { get; set; }
+    public AssetAllocationDto? WorstPerformer { get; set; }
     public IReadOnlyCollection<AssetAllocationDto> AssetAllocation { get; set; } = Array.Empty<AssetAllocationDto>();
 }
 
