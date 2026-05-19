@@ -24,18 +24,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { API_BASE_URL } from './config';
 import {
   changePassword,
+  cancelOrder,
+  createOrder,
   executeTrade,
   getMarketTickers,
   getMe,
+  getOpenOrders,
+  getOrderHistory,
+  getPortfolioHistory,
   getPortfolioSummary,
   getTransactions,
   getWallet,
   login,
+  logout as logoutRequest,
   register,
   tokenStore,
   updateMe
 } from './api';
-import type { MarketTickerDto, Page, PriceState, TradeMode, UserDto } from './types';
+import type { MarketTickerDto, OrderDto, Page, PriceState, TradeMode, UserDto } from './types';
 
 const defaultSymbols = [
   'BTCUSDT',
@@ -90,8 +96,12 @@ export function App() {
   const [prices, setPrices] = useState(initialPrices);
   const [connectionLabel, setConnectionLabel] = useState('Baglaniyor...');
   const [mode, setMode] = useState<TradeMode>('buy');
+  const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT' | 'STOP_LOSS' | 'TAKE_PROFIT'>('MARKET');
   const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
   const [amount, setAmount] = useState('');
+  const [limitPrice, setLimitPrice] = useState('');
+  const [triggerPrice, setTriggerPrice] = useState('');
+  const [historyRange, setHistoryRange] = useState('7D');
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -100,7 +110,10 @@ export function App() {
   const walletQuery = useQuery({ queryKey: ['wallet'], queryFn: getWallet, enabled: Boolean(token) });
   const transactionsQuery = useQuery({ queryKey: ['transactions'], queryFn: getTransactions, enabled: Boolean(token) });
   const portfolioQuery = useQuery({ queryKey: ['portfolio-summary'], queryFn: getPortfolioSummary, enabled: Boolean(token) });
+  const portfolioHistoryQuery = useQuery({ queryKey: ['portfolio-history', historyRange], queryFn: () => getPortfolioHistory(historyRange), enabled: Boolean(token) });
   const marketQuery = useQuery({ queryKey: ['market-tickers'], queryFn: getMarketTickers, enabled: Boolean(token), refetchInterval: 30000 });
+  const openOrdersQuery = useQuery({ queryKey: ['orders-open'], queryFn: getOpenOrders, enabled: Boolean(token), refetchInterval: 15000 });
+  const orderHistoryQuery = useQuery({ queryKey: ['orders-history'], queryFn: getOrderHistory, enabled: Boolean(token), refetchInterval: 30000 });
 
   useEffect(() => {
     if (meQuery.isError) {
@@ -171,21 +184,49 @@ export function App() {
   }, [search]);
 
   const tradeMutation = useMutation({
-    mutationFn: () => executeTrade(mode, { symbol: selectedSymbol, amount: numericAmount, requestedPrice: selectedPrice }),
+    mutationFn: () => orderType === 'MARKET'
+      ? createOrder({ symbol: selectedSymbol, side: mode.toUpperCase() as 'BUY' | 'SELL', type: orderType, quantity: numericAmount, price: selectedPrice })
+      : createOrder({
+        symbol: selectedSymbol,
+        side: mode.toUpperCase() as 'BUY' | 'SELL',
+        type: orderType,
+        quantity: numericAmount,
+        price: Number(limitPrice) || selectedPrice,
+        triggerPrice: Number(triggerPrice) || Number(limitPrice) || selectedPrice
+      }),
     onSuccess: async (result) => {
       setNotice({ type: result.isSuccess ? 'success' : 'error', message: result.message });
       setAmount('');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['wallet'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-        queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] })
+        queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders-open'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders-history'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolio-history'] })
       ]);
     },
     onError: (error) => setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Islem basarisiz oldu.' })
   });
 
-  function logout() {
-    tokenStore.clear();
+  const cancelMutation = useMutation({
+    mutationFn: cancelOrder,
+    onSuccess: async (result) => {
+      setNotice({ type: result.isSuccess ? 'success' : 'error', message: result.message });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders-open'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders-history'] })
+      ]);
+    },
+    onError: (error) => setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Emir iptal edilemedi.' })
+  });
+
+  async function logout() {
+    try {
+      await logoutRequest();
+    } catch {
+      tokenStore.clear();
+    }
     setToken(null);
     queryClient.clear();
   }
@@ -194,6 +235,8 @@ export function App() {
     setNotice(null);
     if (!numericAmount || numericAmount <= 0) return setNotice({ type: 'error', message: 'Lutfen gecerli bir miktar girin.' });
     if (!selectedPrice || selectedPrice <= 0) return setNotice({ type: 'error', message: 'Canli fiyat henuz hazir degil.' });
+    if (orderType === 'LIMIT' && (!Number(limitPrice) || Number(limitPrice) <= 0)) return setNotice({ type: 'error', message: 'Limit fiyat girin.' });
+    if ((orderType === 'STOP_LOSS' || orderType === 'TAKE_PROFIT') && (!Number(triggerPrice) || Number(triggerPrice) <= 0)) return setNotice({ type: 'error', message: 'Trigger fiyat girin.' });
     tradeMutation.mutate();
   }
 
@@ -260,7 +303,7 @@ export function App() {
           <TickerStrip symbols={defaultSymbols} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} />
         </header>
 
-        <div className="mx-auto max-w-[1500px] px-5 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1500px] px-5 pb-28 pt-8 lg:px-8 lg:pb-8">
           {page === 'dashboard' && (
             <Dashboard
               prices={prices}
@@ -269,10 +312,16 @@ export function App() {
               portfolioValue={portfolioValue}
               mode={mode}
               setMode={setMode}
+              orderType={orderType}
+              setOrderType={setOrderType}
               selectedSymbol={selectedSymbol}
               setSelectedSymbol={setSelectedSymbol}
               amount={amount}
               setAmount={setAmount}
+              limitPrice={limitPrice}
+              setLimitPrice={setLimitPrice}
+              triggerPrice={triggerPrice}
+              setTriggerPrice={setTriggerPrice}
               selectedTicker={selectedTicker}
               selectedPrice={selectedPrice}
               fee={fee}
@@ -284,6 +333,12 @@ export function App() {
               favorites={favorites}
               toggleFavorite={toggleFavorite}
               transactions={transactionsQuery.data ?? []}
+              openOrders={openOrdersQuery.data ?? []}
+              orderHistory={orderHistoryQuery.data ?? []}
+              onCancelOrder={(id: string) => cancelMutation.mutate(id)}
+              portfolioHistory={portfolioHistoryQuery.data ?? []}
+              historyRange={historyRange}
+              setHistoryRange={setHistoryRange}
               isMarketLoading={marketQuery.isLoading}
             />
           )}
@@ -292,6 +347,14 @@ export function App() {
           {page === 'settings' && <SettingsPage user={meQuery.data} onSaved={(user) => queryClient.setQueryData(['me'], user)} setNotice={setNotice} />}
         </div>
       </main>
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-[#0b1020]/95 p-2 backdrop-blur-xl lg:hidden">
+        {nav.map(([Icon, label, target]) => (
+          <button key={target} onClick={() => setPage(target)} className={`flex min-h-11 flex-col items-center justify-center rounded-xl text-[11px] font-black ${page === target ? 'bg-accent/15 text-accent' : 'text-slate-400'}`}>
+            <Icon size={18} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -338,10 +401,16 @@ function Dashboard(props: any) {
     portfolioValue,
     mode,
     setMode,
+    orderType,
+    setOrderType,
     selectedSymbol,
     setSelectedSymbol,
     amount,
     setAmount,
+    limitPrice,
+    setLimitPrice,
+    triggerPrice,
+    setTriggerPrice,
     selectedTicker,
     selectedPrice,
     fee,
@@ -353,6 +422,12 @@ function Dashboard(props: any) {
     favorites,
     toggleFavorite,
     transactions,
+    openOrders,
+    orderHistory,
+    onCancelOrder,
+    portfolioHistory,
+    historyRange,
+    setHistoryRange,
     isMarketLoading
   } = props;
 
@@ -368,13 +443,17 @@ function Dashboard(props: any) {
       <section className="grid gap-6 xl:grid-cols-[300px_1fr_360px]">
         <Watchlist symbols={symbols} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} favorites={favorites} toggleFavorite={toggleFavorite} isLoading={isMarketLoading} />
         <ChartPanel symbol={selectedSymbol} ticker={selectedTicker} />
-        <TradePanel mode={mode} setMode={setMode} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} amount={amount} setAmount={setAmount} selectedPrice={selectedPrice} fee={fee} total={total} submitTrade={submitTrade} isTrading={isTrading} symbols={symbols} />
+        <TradePanel mode={mode} setMode={setMode} orderType={orderType} setOrderType={setOrderType} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} amount={amount} setAmount={setAmount} limitPrice={limitPrice} setLimitPrice={setLimitPrice} triggerPrice={triggerPrice} setTriggerPrice={setTriggerPrice} selectedPrice={selectedPrice} fee={fee} total={total} submitTrade={submitTrade} isTrading={isTrading} symbols={symbols} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <PortfolioAnalytics summary={summary} assets={assets} prices={prices} />
         <AiInsight summary={summary} assets={assets} />
       </section>
+
+      <PortfolioHistoryChart points={portfolioHistory} range={historyRange} setRange={setHistoryRange} />
+
+      <OrderTables openOrders={openOrders} orderHistory={orderHistory} onCancel={onCancelOrder} />
 
       <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <RecentTrades transactions={transactions} />
@@ -468,9 +547,9 @@ function ChartPanel({ symbol, ticker }: { symbol: string; ticker: PriceState }) 
   );
 }
 
-function TradePanel({ mode, setMode, selectedSymbol, setSelectedSymbol, amount, setAmount, selectedPrice, fee, total, submitTrade, isTrading, symbols }: any) {
+function TradePanel({ mode, setMode, orderType, setOrderType, selectedSymbol, setSelectedSymbol, amount, setAmount, limitPrice, setLimitPrice, triggerPrice, setTriggerPrice, selectedPrice, fee, total, submitTrade, isTrading, symbols }: any) {
   return (
-    <section className="rounded-2xl border border-line bg-panel/95 p-6 shadow-2xl">
+    <section className="rounded-2xl border border-line bg-panel/95 p-6 shadow-2xl max-xl:sticky max-xl:bottom-20 max-xl:z-10">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="text-xl font-black">Order Ticket</h2>
         {isTrading && <Loader2 className="animate-spin text-accent" size={18} />}
@@ -482,27 +561,82 @@ function TradePanel({ mode, setMode, selectedSymbol, setSelectedSymbol, amount, 
       <select value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value)} className="mb-5 w-full rounded-2xl border border-line bg-panelSoft px-4 py-4 text-base outline-none">
         {symbols.map((symbol: string) => <option key={symbol} value={symbol}>{coinName(symbol)} ({coinShort(symbol)})</option>)}
       </select>
+      <label className="mb-2 block text-base font-semibold text-slate-300">Order Type</label>
+      <select value={orderType} onChange={(event) => setOrderType(event.target.value)} className="mb-5 w-full rounded-2xl border border-line bg-panelSoft px-4 py-4 text-base outline-none">
+        <option value="MARKET">Market</option>
+        <option value="LIMIT">Limit</option>
+        <option value="STOP_LOSS">Stop Loss</option>
+        <option value="TAKE_PROFIT">Take Profit</option>
+      </select>
       <label className="mb-2 block text-base font-semibold text-slate-300">Miktar</label>
       <div className="mb-5 flex items-center rounded-2xl border border-line bg-panelSoft px-4">
         <input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0" step="0.00000001" className="w-full bg-transparent py-4 text-base outline-none" placeholder="0.00" />
         <span className="text-sm font-black text-slate-400">{coinShort(selectedSymbol)}</span>
       </div>
+      {orderType === 'LIMIT' && <Input label="Limit fiyat" type="number" value={limitPrice} onChange={setLimitPrice} />}
+      {(orderType === 'STOP_LOSS' || orderType === 'TAKE_PROFIT') && <Input label="Trigger fiyat" type="number" value={triggerPrice} onChange={setTriggerPrice} />}
       <div className="mb-6 space-y-3 rounded-2xl bg-black/25 p-5 text-base">
         <Row label="Birim Fiyat" value={formatCurrency(selectedPrice)} />
         <Row label="Komisyon (0.1%)" value={formatCurrency(fee)} />
         <Row label="Tahmini Toplam" value={formatCurrency(total)} strong />
       </div>
-      <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-        <div className="text-sm font-bold text-cyan-200">Order Types</div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-bold">
-          {['Market', 'Limit', 'Stop Loss', 'Take Profit'].map((item) => <span key={item} className="rounded-xl bg-white/[0.05] px-3 py-2 text-center text-slate-300">{item}</span>)}
-        </div>
-      </div>
       <button disabled={isTrading} onClick={submitTrade} className={`w-full rounded-2xl py-4 text-base font-black text-white shadow-xl disabled:opacity-60 ${mode === 'buy' ? 'bg-accent shadow-accent/20' : 'bg-danger shadow-danger/20'}`}>
-        {mode === 'buy' ? 'Satin Alimi Onayla' : 'Satisi Onayla'}
+        {orderType === 'MARKET' ? (mode === 'buy' ? 'Market Alimi Onayla' : 'Market Satisi Onayla') : 'Emri Deftere Gonder'}
       </button>
     </section>
   );
+}
+
+function PortfolioHistoryChart({ points, range, setRange }: any) {
+  const data = points?.length ? points : [];
+  const max = Math.max(...data.map((p: any) => Number(p.totalValue) || 0), 1);
+  const min = Math.min(...data.map((p: any) => Number(p.totalValue) || max), max);
+  const span = Math.max(max - min, 1);
+
+  return (
+    <section className="rounded-2xl border border-line bg-panel p-6 shadow-2xl">
+      <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h2 className="text-2xl font-black">Portfolio History</h2>
+          <p className="mt-1 text-base text-slate-400">Worker snapshot equity curve ve PnL trendi.</p>
+        </div>
+        <div className="grid grid-cols-5 rounded-2xl bg-black/25 p-1">
+          {['1D', '7D', '1M', '3M', '1Y'].map((item) => <button key={item} onClick={() => setRange(item)} className={`min-h-11 rounded-xl px-3 text-sm font-black ${range === item ? 'bg-white/10 text-white' : 'text-slate-500'}`}>{item}</button>)}
+        </div>
+      </div>
+      {data.length === 0 ? <State text="Snapshot worker ilk veriyi olusturdugunda grafik burada gorunecek." /> : (
+        <div className="flex h-64 items-end gap-2 rounded-2xl bg-black/25 p-4">
+          {data.map((point: any) => {
+            const height = 12 + ((Number(point.totalValue) - min) / span) * 88;
+            return <div key={point.createdAt} title={`${new Date(point.createdAt).toLocaleString()} ${formatCurrency(point.totalValue)}`} className="flex min-w-4 flex-1 flex-col justify-end"><div className="rounded-t-lg bg-[linear-gradient(180deg,#22c55e,#38bdf8)] transition-all" style={{ height: `${height}%` }} /></div>;
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function OrderTables({ openOrders, orderHistory, onCancel }: { openOrders: OrderDto[]; orderHistory: OrderDto[]; onCancel: (id: string) => void }) {
+  return (
+    <section className="grid gap-6 xl:grid-cols-2">
+      <OrderTable title="Open Orders" orders={openOrders} onCancel={onCancel} cancellable />
+      <OrderTable title="Order History" orders={orderHistory.slice(0, 8)} onCancel={onCancel} />
+    </section>
+  );
+}
+
+function OrderTable({ title, orders, onCancel, cancellable }: { title: string; orders: OrderDto[]; onCancel: (id: string) => void; cancellable?: boolean }) {
+  return (
+    <section className="rounded-2xl border border-line bg-panel p-6 shadow-2xl">
+      <h2 className="mb-5 text-xl font-black">{title}</h2>
+      {orders.length === 0 ? <State text="Gosterilecek emir yok." /> : <div className="overflow-x-auto"><table className="w-full text-left text-sm sm:text-base"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-3">Side</th><th className="p-3">Symbol</th><th className="p-3">Type</th><th className="p-3">Qty</th><th className="p-3">Price</th><th className="p-3">Status</th>{cancellable && <th className="p-3" />}</tr></thead><tbody>{orders.map((o) => <tr key={o.id} className="border-t border-line"><td className={`p-3 font-black ${o.side === 'BUY' ? 'text-accent' : 'text-danger'}`}>{o.side}</td><td className="p-3">{o.symbol}</td><td className="p-3">{o.type}</td><td className="p-3">{o.quantity}</td><td className="p-3">{formatCurrency(o.averageFillPrice ?? o.price ?? o.triggerPrice ?? 0)}</td><td className="p-3"><StatusBadge status={o.status} /></td>{cancellable && <td className="p-3 text-right"><button onClick={() => onCancel(o.id)} className="min-h-11 rounded-xl border border-danger/30 px-3 font-bold text-danger">Iptal</button></td>}</tr>)}</tbody></table></div>}
+    </section>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const color = status === 'FILLED' ? 'text-accent bg-accent/10' : status === 'PENDING' ? 'text-cyan-300 bg-cyan-400/10' : status === 'CANCELLED' ? 'text-slate-300 bg-white/10' : 'text-danger bg-danger/10';
+  return <span className={`rounded-full px-3 py-1 text-xs font-black ${color}`}>{status}</span>;
 }
 
 function PortfolioAnalytics({ summary, assets, prices }: any) {

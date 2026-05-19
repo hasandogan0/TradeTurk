@@ -1,72 +1,97 @@
-# TRadeTurk 📈
+# TRadeTurk
 
-TRadeTurk is an enterprise-grade Trading Simulation application built with .NET 10 and Clean Architecture. It allows users to simulate cryptocurrency trading using real-time data from the Binance API, manage virtual wallets, and execute buy/sell transactions with realistic conditions such as commission fees and price slippage.
+TRadeTurk is a premium fintech/trading platform demo built with .NET, Clean Architecture, CQRS, SignalR, React and live Binance market data. It provides a demo wallet, virtual card, multi-market trading, advanced order tickets, portfolio analytics and real-time dashboard experiences.
 
-## 🚀 Key Features
+## Features
 
-- **Real-time Market Data:** Fetches live cryptocurrency prices using a background worker integrated with the Binance API.
-- **Proxy-Supported Binance Service:** Reliable integration with external APIs using caching and proxy patterns.
-- **Live Price Updates:** Uses SignalR for real-time streaming of price updates to connected clients (`/priceHub`).
-- **Virtual Wallets & Assets:** Manage virtual portfolios, and securely deposit/withdraw simulated funds via virtual cards.
-- **Trading Engine:** Execute Buy/Sell transactions with realistic slippage algorithms and commission calculations.
-- **CQRS Pattern:** Implements Command Query Responsibility Segregation using MediatR for scalable and decoupled architecture.
+- JWT authentication with refresh token rotation and logout revoke
+- Automatic 50,000 USDT demo wallet and masked virtual card on registration
+- Multi-market watchlist for BTC, ETH, BNB, SOL, XRP, ADA, DOGE, AVAX, DOT, LINK, MATIC, LTC, TRX, ATOM and NEAR
+- Market, limit, stop-loss and take-profit order flow
+- Open orders, order history and cancel pending order support
+- Wallet, assets, transactions and portfolio summary screens
+- Portfolio snapshot worker and historical equity curve endpoint
+- SignalR live price, ticker and order notifications
+- Binance proxy service with cache, rate-limit protection and deterministic fallback for tests/demo
+- Responsive React dashboard with TradingView chart, premium fintech cards and mobile bottom navigation
+- Docker, docker-compose and GitHub Actions CI workflow
 
-## 🏗️ Architecture & Technologies
+## Architecture
 
-The project strictly follows **Clean Architecture** principles to ensure separation of concerns, testability, and long-term maintainability.
+TRadeTurk follows Clean Architecture:
 
-- **.NET 10** (C# 14)
-- **Entity Framework Core** (SQL Server)
-- **MediatR** (CQRS Pattern)
-- **FluentValidation** (Pipeline Exception Handling & Request Validation)
-- **SignalR** (WebSockets for real-time price feeds)
-- **AutoMapper** (Object-to-object mapping for DTOs)
-- **Swagger/OpenAPI** (API Documentation)
-- **Background Services** (`IHostedService` for scheduled background jobs like `BinanceDataWorker`)
+```text
+Domain -> Application -> Infrastructure -> WebAPI
+```
 
-## 📂 Project Structure
+- `Domain`: entities, enums and core business rules. It knows nothing about EF Core, controllers, JWT, SignalR or Binance.
+- `Application`: CQRS commands/queries, DTOs and abstractions.
+- `Infrastructure`: EF Core, repositories, unit of work, Binance proxy, token services and background workers.
+- `WebAPI`: controllers, middleware, authentication scheme, CORS, rate limiting and SignalR endpoint.
+- `frontend`: React + TypeScript + Tailwind trading terminal.
 
-- `TRadeTurk.Domain`: Core domain entities (`Asset`, `Wallet`, `Transaction`, `Card`), enums (`TransactionStatus`), trading strategies, and repository interfaces.
-- `TRadeTurk.Application`: Business logic, CQRS Handlers (MediatR), Validators (FluentValidation), and Mappers.
-- `TRadeTurk.Infrastructure`: Database context (`ApplicationDbContext`), Entity Framework Core migrations, generic repositories, Unit of Work, Binance API proxy service, and Background Jobs.
-- `TRadeTurk.WebAPI`: ASP.NET Core API controllers, Exception Handling Middleware, SignalR Hubs (`PriceHub`), and Dependency Injection setup.
+See [docs/architecture.md](docs/architecture.md) for the longer version.
 
-## 🛠️ Getting Started
+## Tech Stack
 
-### Prerequisites
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
-- SQL Server (LocalDB, Developer Edition, or Docker container)
-- Supported IDE (Visual Studio 2022, Rider, or VS Code)
+- .NET 10, ASP.NET Core, EF Core, MediatR, FluentValidation
+- SQL Server, Unit of Work, optimistic concurrency via `RowVersion`
+- SignalR for live updates
+- React, TypeScript, TanStack Query, Tailwind, Lucide Icons
+- Binance API through Proxy Pattern and strategy-based price providers
+- xUnit, FluentAssertions, WebApplicationFactory integration tests
 
-### Installation & Setup
+## Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/hasandogan0/TradeTurk.git
-   cd TRadeTurk
-   ```
+```bash
+dotnet restore TRadeTurk.slnx
+dotnet build TRadeTurk.slnx
+dotnet test TRadeTurk.slnx
+dotnet run --project src/TRadeTurk.WebAPI
+```
 
-2. **Configure the Database:**
-   Update the `ConnectionStrings:DefaultConnection` in `src/TRadeTurk.WebAPI/appsettings.json` (or `appsettings.Development.json`) to point to your local SQL Server instance.
+Frontend:
 
-3. **Apply Database Migrations:**
-   Using the .NET CLI, run the following command to update your database schema:
-   ```bash
-   dotnet ef database update --project src/TRadeTurk.Infrastructure --startup-project src/TRadeTurk.WebAPI
-   ```
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-4. **Run the Application:**
-   ```bash
-   dotnet run --project src/TRadeTurk.WebAPI
-   ```
+Default local URLs:
 
-5. **Access the API Documentation:**
-   Once the application is running, open your browser and navigate to `https://localhost:<port>/swagger` to view and test the API endpoints.
+- API: `http://localhost:5129`
+- Frontend: `http://localhost:5173`
+- SignalR: `/priceHub`
 
-## 🤝 Contributing
+## Docker
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+docker compose up --build
+```
 
-## 📄 License
+## API
 
-This project is licensed under the terms of the license provided in the `LICENSE` file.
+Endpoint details are documented in [docs/api-endpoints.md](docs/api-endpoints.md).
+
+## Testing
+
+Tests avoid real Binance calls. Integration tests replace price and market services with deterministic fakes.
+
+```bash
+dotnet test TRadeTurk.slnx
+cd frontend
+npm run build
+```
+
+See [docs/testing.md](docs/testing.md).
+
+## Roadmap
+
+- Email verification and password reset flows
+- Device/session management UI
+- Persisted notification center
+- Advanced chart overlays and saved layouts
+- Live trading provider abstraction beyond simulated execution

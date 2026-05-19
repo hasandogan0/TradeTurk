@@ -16,6 +16,7 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPriceProviderContext _priceProviderContext;
     private readonly ICurrentUserContext _currentUserContext;
+    private readonly IAuditService _auditService;
 
     public SellAssetCommandHandler(
         IRepository<Wallet> walletRepository,
@@ -23,7 +24,8 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
         IRepository<Transaction> transactionRepository,
         IUnitOfWork unitOfWork,
         IPriceProviderContext priceProviderContext,
-        ICurrentUserContext currentUserContext)
+        ICurrentUserContext currentUserContext,
+        IAuditService auditService)
     {
         _walletRepository = walletRepository;
         _assetRepository = assetRepository;
@@ -31,6 +33,7 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
         _unitOfWork = unitOfWork;
         _priceProviderContext = priceProviderContext;
         _currentUserContext = currentUserContext;
+        _auditService = auditService;
     }
 
     public async Task<TransactionResultDto> Handle(SellAssetCommand request, CancellationToken cancellationToken)
@@ -80,6 +83,7 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
             await _transactionRepository.AddAsync(transaction, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _auditService.LogAsync(userId, $"Sell {symbol}", cancellationToken);
 
             return new TransactionResultDto
             {

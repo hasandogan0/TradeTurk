@@ -22,6 +22,7 @@ export type UserDto = {
 
 export type AuthResultDto = {
   token: string;
+  refreshToken: string;
   user: UserDto;
 };
 
@@ -101,4 +102,35 @@ export type MarketTickerDto = {
   low24h: number;
   volume24h: number;
   retrievedAtUtc: string;
+};
+
+export type OrderDto = {
+  id: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  type: 'MARKET' | 'LIMIT' | 'STOP_LOSS' | 'TAKE_PROFIT';
+  status: 'PENDING' | 'FILLED' | 'PARTIALLY_FILLED' | 'CANCELLED' | 'FAILED';
+  quantity: number;
+  price?: number | null;
+  triggerPrice?: number | null;
+  filledQuantity: number;
+  averageFillPrice?: number | null;
+  total: number;
+  createdAt: string;
+  filledAt?: string | null;
+  cancelledAt?: string | null;
+};
+
+export type OrderResultDto = {
+  isSuccess: boolean;
+  message: string;
+  order?: OrderDto | null;
+};
+
+export type PortfolioHistoryPointDto = {
+  createdAt: string;
+  totalValue: number;
+  availableUSDT: number;
+  assetValue: number;
+  totalPnL: number;
 };

@@ -63,6 +63,20 @@ public class PortfolioEndpointsTests
     }
 
     [Fact]
+    public async Task PortfolioHistoryEndpoint_ShouldReturnAuthenticatedUserHistory()
+    {
+        await using var factory = new TestWebApplicationFactory();
+        var client = factory.CreateClient();
+        await client.AuthenticateAsSeededUserAsync();
+
+        var response = await client.GetAsync("/api/portfolio/history/me?range=7D");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var history = await response.Content.ReadFromJsonAsync<List<PortfolioHistoryResponse>>();
+        history.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task UpdateSettingsEndpoint_ShouldUpdateCurrentUser()
     {
         await using var factory = new TestWebApplicationFactory();
@@ -110,6 +124,11 @@ public class PortfolioEndpointsTests
     {
         public decimal TotalPortfolioValue { get; set; }
         public decimal AvailableUsdt { get; set; }
+    }
+
+    private sealed class PortfolioHistoryResponse
+    {
+        public decimal TotalValue { get; set; }
     }
 
     private sealed class UserResponse

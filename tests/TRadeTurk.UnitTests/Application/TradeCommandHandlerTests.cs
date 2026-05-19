@@ -30,7 +30,8 @@ public class TradeCommandHandlerTests
             transactionRepository,
             new NoOpUnitOfWork(),
             priceProvider.Object,
-            currentUser.Object);
+            currentUser.Object,
+            Mock.Of<IAuditService>());
 
         // Act
         var result = await handler.Handle(new BuyAssetCommand
@@ -65,7 +66,8 @@ public class TradeCommandHandlerTests
             new InMemoryRepository<Transaction>(),
             new NoOpUnitOfWork(),
             priceProvider.Object,
-            currentUser.Object);
+            currentUser.Object,
+            Mock.Of<IAuditService>());
 
         // Act
         var result = await handler.Handle(new BuyAssetCommand
@@ -102,7 +104,8 @@ public class TradeCommandHandlerTests
             transactionRepository,
             new NoOpUnitOfWork(),
             priceProvider.Object,
-            currentUser.Object);
+            currentUser.Object,
+            Mock.Of<IAuditService>());
 
         // Act
         var result = await handler.Handle(new SellAssetCommand
@@ -136,7 +139,8 @@ public class TradeCommandHandlerTests
             new InMemoryRepository<Transaction>(),
             new NoOpUnitOfWork(),
             Mock.Of<IPriceProviderContext>(),
-            currentUser.Object);
+            currentUser.Object,
+            Mock.Of<IAuditService>());
 
         // Act
         var result = await handler.Handle(new SellAssetCommand

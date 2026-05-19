@@ -43,6 +43,10 @@ public class ExceptionHandlingMiddleware
                 message = "Lutfen formdaki bilgileri kontrol edin.";
                 errors = validationException.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
                 break;
+            case UnauthorizedAccessException:
+                statusCode = (int)HttpStatusCode.Unauthorized;
+                message = "Bu islem icin yetkiniz yok.";
+                break;
             case InvalidOperationException invalidOperationException:
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = invalidOperationException.Message;

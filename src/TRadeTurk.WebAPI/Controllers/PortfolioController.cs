@@ -27,4 +27,11 @@ public class PortfolioController : ControllerBase
         var summary = await _mediator.Send(new GetPortfolioSummaryQuery { UserId = userId });
         return summary == null ? NotFound(new { message = "Portfoy bulunamadi." }) : Ok(summary);
     }
+
+    [HttpGet("history/me")]
+    public async Task<IActionResult> GetHistory([FromQuery] string range = "7D")
+    {
+        User.SetCurrentUserFromClaims(_currentUserContext);
+        return Ok(await _mediator.Send(new GetPortfolioHistoryQuery { Range = range }));
+    }
 }

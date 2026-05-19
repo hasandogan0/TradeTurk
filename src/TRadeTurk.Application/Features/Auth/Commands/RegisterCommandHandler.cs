@@ -12,27 +12,36 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResul
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Wallet> _walletRepository;
     private readonly IRepository<Card> _cardRepository;
+    private readonly IRepository<RefreshToken> _refreshTokenRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IVirtualCardFactory _virtualCardFactory;
     private readonly ITokenService _tokenService;
+    private readonly IRefreshTokenService _refreshTokenService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuditService _auditService;
 
     public RegisterCommandHandler(
         IRepository<User> userRepository,
         IRepository<Wallet> walletRepository,
         IRepository<Card> cardRepository,
+        IRepository<RefreshToken> refreshTokenRepository,
         IPasswordHasher passwordHasher,
         IVirtualCardFactory virtualCardFactory,
         ITokenService tokenService,
-        IUnitOfWork unitOfWork)
+        IRefreshTokenService refreshTokenService,
+        IUnitOfWork unitOfWork,
+        IAuditService auditService)
     {
         _userRepository = userRepository;
         _walletRepository = walletRepository;
         _cardRepository = cardRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _passwordHasher = passwordHasher;
         _virtualCardFactory = virtualCardFactory;
         _tokenService = tokenService;
+        _refreshTokenService = refreshTokenService;
         _unitOfWork = unitOfWork;
+        _auditService = auditService;
     }
 
     public async Task<AuthResultDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -52,11 +61,15 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResul
         await _userRepository.AddAsync(user, cancellationToken);
         await _walletRepository.AddAsync(wallet, cancellationToken);
         await _cardRepository.AddAsync(card, cancellationToken);
+        var refreshToken = _refreshTokenService.CreateRefreshToken();
+        await _refreshTokenRepository.AddAsync(new RefreshToken(user.Id, _refreshTokenService.Hash(refreshToken), _refreshTokenService.GetExpiry()), cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _auditService.LogAsync(user.Id, "Register", cancellationToken);
 
         return new AuthResultDto
         {
             Token = _tokenService.CreateToken(user),
+            RefreshToken = refreshToken,
             User = ToDto(user)
         };
     }

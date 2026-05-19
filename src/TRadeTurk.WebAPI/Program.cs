@@ -1,6 +1,7 @@
 using FluentValidation;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
+using System.Threading.RateLimiting;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TRadeTurk.Application.Common.Behaviors;
@@ -41,11 +42,27 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IVirtualCardFactory, VirtualCardFactory>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditService, AuditLoggingService>();
 
 builder.Services.AddAuthentication("Bearer")
     .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("Bearer", _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<BinanceService>();
@@ -56,6 +73,8 @@ builder.Services.AddScoped<IPriceProviderStrategy, MockPriceProviderStrategy>();
 builder.Services.AddScoped<IPriceProviderContext, PriceProviderContext>();
 
 builder.Services.AddHostedService<BinanceDataWorker>();
+builder.Services.AddHostedService<PendingOrderWorker>();
+builder.Services.AddHostedService<PortfolioSnapshotWorker>();
 
 builder.Services.AddMediatR(cfg =>
 {
@@ -81,6 +100,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

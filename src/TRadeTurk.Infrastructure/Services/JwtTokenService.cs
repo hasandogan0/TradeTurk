@@ -36,7 +36,7 @@ public class JwtTokenService : ITokenService
             [ClaimTypes.NameIdentifier] = user.Id.ToString(),
             [ClaimTypes.Name] = user.UserName,
             [ClaimTypes.Email] = user.Email,
-            ["exp"] = now.AddHours(12).ToUnixTimeSeconds(),
+            ["exp"] = now.AddMinutes(15).ToUnixTimeSeconds(),
             ["iat"] = now.ToUnixTimeSeconds()
         };
 

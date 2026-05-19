@@ -24,6 +24,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Card> Cards => Set<Card>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<PortfolioSnapshot> PortfolioSnapshots => Set<PortfolioSnapshot>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +54,12 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Card>()
             .HasQueryFilter(c => !CurrentUserId.HasValue || c.UserId == CurrentUserId.Value);
+
+        modelBuilder.Entity<Order>()
+            .HasQueryFilter(o => !CurrentUserId.HasValue || o.UserId == CurrentUserId.Value);
+
+        modelBuilder.Entity<PortfolioSnapshot>()
+            .HasQueryFilter(s => !CurrentUserId.HasValue || s.UserId == CurrentUserId.Value);
 
     }
 }

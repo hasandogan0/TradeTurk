@@ -9,12 +9,14 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
     private readonly IRepository<User> _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuditService _auditService;
 
-    public ChangePasswordCommandHandler(IRepository<User> userRepository, IPasswordHasher passwordHasher, IUnitOfWork unitOfWork)
+    public ChangePasswordCommandHandler(IRepository<User> userRepository, IPasswordHasher passwordHasher, IUnitOfWork unitOfWork, IAuditService auditService)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
+        _auditService = auditService;
     }
 
     public async Task<bool> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -29,6 +31,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         user.ChangePasswordHash(_passwordHasher.Hash(request.NewPassword));
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _auditService.LogAsync(user.Id, "PasswordChange", cancellationToken);
         return true;
     }
 }

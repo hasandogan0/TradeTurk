@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TRadeTurk.Application.Features.Auth.Commands;
 
@@ -27,5 +28,20 @@ public class AuthController : ControllerBase
     {
         var result = await _mediator.Send(command);
         return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] LogoutCommand command)
+    {
+        await _mediator.Send(command);
+        return Ok(new { message = "Cikis yapildi." });
     }
 }
