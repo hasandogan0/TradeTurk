@@ -102,6 +102,8 @@ export type MarketTickerDto = {
   low24h: number;
   volume24h: number;
   retrievedAtUtc: string;
+  marketType?: 'Crypto' | 'Stock' | 'Forex';
+  displayName?: string;
 };
 
 export type OrderDto = {
