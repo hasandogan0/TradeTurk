@@ -25,6 +25,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (!error.response) {
+      return Promise.reject(new Error('API sunucusuna ulasilamiyor. Lutfen backend servisinin calistigindan emin olun.'));
+    }
+
     const message = error.response?.data?.message ?? error.response?.data?.Message ?? error.message ?? 'Islem basarisiz oldu.';
     return Promise.reject(new Error(message));
   }
