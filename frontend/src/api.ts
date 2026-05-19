@@ -52,14 +52,25 @@ export type RegisterRequest = z.infer<typeof registerSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;
 export type TradeRequest = z.infer<typeof tradeSchema>;
 
+function parseOrThrow<T>(schema: z.ZodType<T>, request: unknown, message: string): T {
+  const result = schema.safeParse(request);
+  if (!result.success) {
+    throw new Error(message);
+  }
+
+  return result.data;
+}
+
 export async function register(request: RegisterRequest): Promise<AuthResultDto> {
-  const response = await api.post<AuthResultDto>('/api/auth/register', registerSchema.parse(request));
+  const body = parseOrThrow(registerSchema, request, 'Lutfen ad soyad, gecerli email, en az 3 karakter kullanici adi ve en az 8 karakter sifre girin.');
+  const response = await api.post<AuthResultDto>('/api/auth/register', body);
   tokenStore.set(response.data.token);
   return response.data;
 }
 
 export async function login(request: LoginRequest): Promise<AuthResultDto> {
-  const response = await api.post<AuthResultDto>('/api/auth/login', loginSchema.parse(request));
+  const body = parseOrThrow(loginSchema, request, 'Lutfen email/kullanici adi ve sifrenizi kontrol edin.');
+  const response = await api.post<AuthResultDto>('/api/auth/login', body);
   tokenStore.set(response.data.token);
   return response.data;
 }
@@ -96,6 +107,7 @@ export async function getPortfolioSummary(): Promise<PortfolioSummaryDto> {
 
 export async function executeTrade(mode: TradeMode, request: TradeRequest): Promise<TradeResultDto> {
   const endpoint = mode === 'buy' ? '/api/trade/buy' : '/api/trade/sell';
-  const response = await api.post<TradeResultDto>(endpoint, tradeSchema.parse(request));
+  const body = parseOrThrow(tradeSchema, request, 'Lutfen gecerli sembol, miktar ve fiyat girin.');
+  const response = await api.post<TradeResultDto>(endpoint, body);
   return response.data;
 }
