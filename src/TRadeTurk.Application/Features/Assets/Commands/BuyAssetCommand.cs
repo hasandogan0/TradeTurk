@@ -5,8 +5,7 @@ namespace TRadeTurk.Application.Features.Assets.Commands;
 
 public class BuyAssetCommand : IRequest<TransactionResultDto>
 {
-    public Guid UserId { get; set; }
-    public string Symbol { get; set; } = string.Empty; // Örn: BTCUSDT
-    public decimal Amount { get; set; } // Alınacak miktar
-    public decimal RequestedPrice { get; set; } // Kullanıcının ekranda gördüğü anlık fiyat
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal RequestedPrice { get; set; }
 }

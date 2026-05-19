@@ -8,32 +8,36 @@ namespace TRadeTurk.Application.Features.Assets.Commands;
 
 public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, TransactionResultDto>
 {
+    private const decimal CommissionRate = 0.001m;
+
     private readonly IRepository<Wallet> _walletRepository;
     private readonly IRepository<Asset> _assetRepository;
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPriceProviderContext _priceProviderContext;
-
-    private const decimal CommissionRate = 0.001m;
+    private readonly ICurrentUserContext _currentUserContext;
 
     public SellAssetCommandHandler(
         IRepository<Wallet> walletRepository,
         IRepository<Asset> assetRepository,
         IRepository<Transaction> transactionRepository,
         IUnitOfWork unitOfWork,
-        IPriceProviderContext priceProviderContext)
+        IPriceProviderContext priceProviderContext,
+        ICurrentUserContext currentUserContext)
     {
         _walletRepository = walletRepository;
         _assetRepository = assetRepository;
         _transactionRepository = transactionRepository;
         _unitOfWork = unitOfWork;
         _priceProviderContext = priceProviderContext;
+        _currentUserContext = currentUserContext;
     }
 
     public async Task<TransactionResultDto> Handle(SellAssetCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserContext.UserId ?? throw new InvalidOperationException("Oturum bulunamadi.");
         var symbol = request.Symbol.Trim().ToUpperInvariant();
-        var wallet = (await _walletRepository.FindAsync(w => w.UserId == request.UserId, cancellationToken)).FirstOrDefault();
+        var wallet = (await _walletRepository.FindAsync(w => w.UserId == userId, cancellationToken)).FirstOrDefault();
 
         if (wallet == null)
         {
@@ -41,7 +45,7 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
         }
 
         var asset = (await _assetRepository.FindAsync(
-            a => a.UserId == request.UserId && a.WalletId == wallet.Id && a.Symbol == symbol,
+            a => a.UserId == userId && a.WalletId == wallet.Id && a.Symbol == symbol,
             cancellationToken)).FirstOrDefault();
 
         if (asset == null || asset.Amount < request.Amount)
@@ -71,7 +75,7 @@ public class SellAssetCommandHandler : IRequestHandler<SellAssetCommand, Transac
             wallet.AddFiat(netFiatAddition);
             _walletRepository.Update(wallet);
 
-            var transaction = new Transaction(request.UserId, wallet.Id, TransactionType.Sell, symbol, request.Amount, executedPrice, commission, slippageDifference);
+            var transaction = new Transaction(userId, wallet.Id, TransactionType.Sell, symbol, request.Amount, executedPrice, commission, slippageDifference);
             transaction.MarkAsCompleted();
             await _transactionRepository.AddAsync(transaction, cancellationToken);
 

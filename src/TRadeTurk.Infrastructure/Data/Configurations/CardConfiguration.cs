@@ -15,8 +15,9 @@ public class CardConfiguration : IEntityTypeConfiguration<Card>
 
         builder.Property(c => c.CardHolderName).HasMaxLength(100).IsRequired();
         builder.Property(c => c.CardNumber).HasMaxLength(16).IsRequired();
-        builder.Property(c => c.ExpiryDate).HasMaxLength(5).IsRequired();
-        builder.Property(c => c.Cvv).HasMaxLength(3).IsRequired();
+        builder.Property(c => c.ExpiryMonth).IsRequired();
+        builder.Property(c => c.ExpiryYear).IsRequired();
+        builder.Property(c => c.CvvHash).HasMaxLength(256).IsRequired();
         
         builder.Property(c => c.Balance).HasColumnType("decimal(18, 4)");
     }

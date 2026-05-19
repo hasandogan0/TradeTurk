@@ -21,18 +21,20 @@ public class TradeCommandHandlerTests
         var priceProvider = new Mock<IPriceProviderContext>();
         priceProvider.Setup(x => x.GetCurrentPriceAsync("BTCUSDT", It.IsAny<CancellationToken>()))
             .ReturnsAsync(100m);
+        var currentUser = new Mock<ICurrentUserContext>();
+        currentUser.SetupGet(x => x.UserId).Returns(userId);
 
         var handler = new BuyAssetCommandHandler(
             walletRepository,
             assetRepository,
             transactionRepository,
             new NoOpUnitOfWork(),
-            priceProvider.Object);
+            priceProvider.Object,
+            currentUser.Object);
 
         // Act
         var result = await handler.Handle(new BuyAssetCommand
         {
-            UserId = userId,
             Symbol = "BTCUSDT",
             Amount = 1m,
             RequestedPrice = 100m
@@ -54,18 +56,20 @@ public class TradeCommandHandlerTests
         var priceProvider = new Mock<IPriceProviderContext>();
         priceProvider.Setup(x => x.GetCurrentPriceAsync("BTCUSDT", It.IsAny<CancellationToken>()))
             .ReturnsAsync(100m);
+        var currentUser = new Mock<ICurrentUserContext>();
+        currentUser.SetupGet(x => x.UserId).Returns(userId);
 
         var handler = new BuyAssetCommandHandler(
             walletRepository,
             new InMemoryRepository<Asset>(),
             new InMemoryRepository<Transaction>(),
             new NoOpUnitOfWork(),
-            priceProvider.Object);
+            priceProvider.Object,
+            currentUser.Object);
 
         // Act
         var result = await handler.Handle(new BuyAssetCommand
         {
-            UserId = userId,
             Symbol = "BTCUSDT",
             Amount = 1m,
             RequestedPrice = 100m
@@ -89,18 +93,20 @@ public class TradeCommandHandlerTests
         var priceProvider = new Mock<IPriceProviderContext>();
         priceProvider.Setup(x => x.GetCurrentPriceAsync("ETHUSDT", It.IsAny<CancellationToken>()))
             .ReturnsAsync(2000m);
+        var currentUser = new Mock<ICurrentUserContext>();
+        currentUser.SetupGet(x => x.UserId).Returns(userId);
 
         var handler = new SellAssetCommandHandler(
             new InMemoryRepository<Wallet>(wallet),
             new InMemoryRepository<Asset>(asset),
             transactionRepository,
             new NoOpUnitOfWork(),
-            priceProvider.Object);
+            priceProvider.Object,
+            currentUser.Object);
 
         // Act
         var result = await handler.Handle(new SellAssetCommand
         {
-            UserId = userId,
             Symbol = "ETHUSDT",
             Amount = 1m,
             RequestedPrice = 2000m
@@ -121,18 +127,20 @@ public class TradeCommandHandlerTests
         var wallet = new Wallet(userId, 1000m);
         var asset = new Asset(userId, wallet.Id, "ETHUSDT");
         asset.AddAmount(0.5m, 2000m);
+        var currentUser = new Mock<ICurrentUserContext>();
+        currentUser.SetupGet(x => x.UserId).Returns(userId);
 
         var handler = new SellAssetCommandHandler(
             new InMemoryRepository<Wallet>(wallet),
             new InMemoryRepository<Asset>(asset),
             new InMemoryRepository<Transaction>(),
             new NoOpUnitOfWork(),
-            Mock.Of<IPriceProviderContext>());
+            Mock.Of<IPriceProviderContext>(),
+            currentUser.Object);
 
         // Act
         var result = await handler.Handle(new SellAssetCommand
         {
-            UserId = userId,
             Symbol = "ETHUSDT",
             Amount = 1m,
             RequestedPrice = 2000m

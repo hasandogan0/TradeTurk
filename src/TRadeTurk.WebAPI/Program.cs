@@ -1,4 +1,6 @@
 using FluentValidation;
+using System.Text;
+using Microsoft.AspNetCore.Authentication;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TRadeTurk.Application.Common.Behaviors;
@@ -9,6 +11,7 @@ using TRadeTurk.Infrastructure.Data;
 using TRadeTurk.Infrastructure.Hubs;
 using TRadeTurk.Infrastructure.Repositories;
 using TRadeTurk.Infrastructure.Services;
+using TRadeTurk.WebAPI.Authentication;
 using TRadeTurk.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +38,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IVirtualCardFactory, VirtualCardFactory>();
+
+builder.Services.AddAuthentication("Bearer")
+    .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("Bearer", _ => { });
+builder.Services.AddAuthorization();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<BinanceService>();
@@ -69,6 +79,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors("Frontend");
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

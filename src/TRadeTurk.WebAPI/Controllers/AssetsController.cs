@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TRadeTurk.Application.Common.Interfaces;
 using TRadeTurk.Application.Features.Assets.Queries;
@@ -6,6 +7,7 @@ using TRadeTurk.Application.Features.Assets.Queries;
 namespace TRadeTurk.WebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/assets")]
 public class AssetsController : ControllerBase
 {
@@ -22,6 +24,15 @@ public class AssetsController : ControllerBase
     public async Task<IActionResult> GetAssets(Guid userId)
     {
         _currentUserContext.SetUserId(userId);
+        var assets = await _mediator.Send(new GetUserAssetsQuery { UserId = userId });
+
+        return Ok(assets);
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyAssets()
+    {
+        var userId = User.SetCurrentUserFromClaims(_currentUserContext);
         var assets = await _mediator.Send(new GetUserAssetsQuery { UserId = userId });
 
         return Ok(assets);

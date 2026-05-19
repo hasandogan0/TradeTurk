@@ -7,47 +7,114 @@ namespace TRadeTurk.IntegrationTests;
 public class PortfolioEndpointsTests
 {
     [Fact]
-    public async Task GetWalletEndpoint_ShouldReturnSeededWallet()
+    public async Task Register_ShouldCreateWalletVirtualCardAndReturnToken()
     {
-        // Arrange
         await using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        // Act
-        var response = await client.GetAsync($"/api/wallet/{TestWebApplicationFactory.TestUserId}");
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            fullName = "Ada Lovelace",
+            email = "ada@example.com",
+            userName = "ada",
+            password = "Test12345!"
+        });
 
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var wallet = await response.Content.ReadFromJsonAsync<WalletResponse>();
-        wallet!.UserId.Should().Be(TestWebApplicationFactory.TestUserId);
-        wallet.FiatBalance.Should().Be(100000m);
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.Token.Should().NotBeNullOrWhiteSpace();
+
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.Token);
+        var wallet = await client.GetFromJsonAsync<WalletDetailsResponse>("/api/wallet/me");
+        wallet!.AvailableBalance.Should().Be(50000m);
+        wallet.VirtualCard.Should().NotBeNull();
+        wallet.VirtualCard!.MaskedCardNumber.Should().StartWith("**** **** **** ");
     }
 
     [Fact]
-    public async Task GetAssetsEndpoint_ShouldReturnSeededAssets()
+    public async Task WalletAndAssetsEndpoints_ShouldReturnOnlyAuthenticatedUserData()
     {
-        // Arrange
         await using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
+        await client.AuthenticateAsSeededUserAsync();
 
-        // Act
-        var response = await client.GetAsync($"/api/assets/{TestWebApplicationFactory.TestUserId}");
+        var walletResponse = await client.GetAsync("/api/wallet/me");
+        walletResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var wallet = await walletResponse.Content.ReadFromJsonAsync<WalletDetailsResponse>();
+        wallet!.AvailableBalance.Should().Be(100000m);
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var assets = await response.Content.ReadFromJsonAsync<List<AssetResponse>>();
+        var assets = await client.GetFromJsonAsync<List<AssetResponse>>("/api/assets/me");
         assets.Should().ContainSingle(a => a.Symbol == "BTCUSDT" && a.Amount == 2m);
     }
 
-    private sealed class WalletResponse
+    [Fact]
+    public async Task PortfolioSummaryEndpoint_ShouldReturnSummary()
     {
-        public Guid UserId { get; set; }
-        public decimal FiatBalance { get; set; }
+        await using var factory = new TestWebApplicationFactory();
+        var client = factory.CreateClient();
+        await client.AuthenticateAsSeededUserAsync();
+
+        var response = await client.GetAsync("/api/portfolio/summary/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var summary = await response.Content.ReadFromJsonAsync<PortfolioSummaryResponse>();
+        summary!.TotalPortfolioValue.Should().BeGreaterThan(100000m);
+        summary.AvailableUsdt.Should().Be(100000m);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsEndpoint_ShouldUpdateCurrentUser()
+    {
+        await using var factory = new TestWebApplicationFactory();
+        var client = factory.CreateClient();
+        await client.AuthenticateAsSeededUserAsync();
+
+        var response = await client.PutAsJsonAsync("/api/users/me", new
+        {
+            fullName = "Updated User",
+            email = "updated@example.com",
+            userName = "updateduser",
+            preferredCurrency = "USDT",
+            themePreference = "dark"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+        user!.FullName.Should().Be("Updated User");
+        user.Email.Should().Be("updated@example.com");
+    }
+
+    private sealed class AuthResponse
+    {
+        public string Token { get; set; } = string.Empty;
+    }
+
+    private sealed class WalletDetailsResponse
+    {
+        public decimal AvailableBalance { get; set; }
+        public CardResponse? VirtualCard { get; set; }
+    }
+
+    private sealed class CardResponse
+    {
+        public string MaskedCardNumber { get; set; } = string.Empty;
     }
 
     private sealed class AssetResponse
     {
         public string Symbol { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+    }
+
+    private sealed class PortfolioSummaryResponse
+    {
+        public decimal TotalPortfolioValue { get; set; }
+        public decimal AvailableUsdt { get; set; }
+    }
+
+    private sealed class UserResponse
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
     }
 }

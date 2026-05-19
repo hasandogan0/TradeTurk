@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using TRadeTurk.Application.Common.Interfaces;
 using TRadeTurk.Domain.Entities;
 using TRadeTurk.Infrastructure.Data;
+using TRadeTurk.Infrastructure.Services;
 
 namespace TRadeTurk.IntegrationTests;
 
@@ -19,6 +21,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(logging => logging.ClearProviders());
+
         builder.ConfigureServices(services =>
         {
             foreach (var descriptor in services
@@ -45,10 +49,17 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             context.Database.EnsureCreated();
 
+            var passwordHasher = new PasswordHasher();
+            var user = new User("Test User", "test@example.com", "testuser", passwordHasher.Hash("Test12345!"));
             var wallet = new Wallet(TestUserId, 100000m);
             var asset = new Asset(TestUserId, wallet.Id, "BTCUSDT");
             asset.AddAmount(2m, 50000m);
 
+            typeof(TRadeTurk.Domain.Common.BaseEntity)
+                .GetProperty(nameof(TRadeTurk.Domain.Common.BaseEntity.Id))!
+                .SetValue(user, TestUserId);
+
+            context.Users.Add(user);
             context.Wallets.Add(wallet);
             context.Assets.Add(asset);
             context.SaveChanges();

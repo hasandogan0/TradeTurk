@@ -32,12 +32,11 @@ public class QueryAndValidatorTests
     public async Task BuyAssetCommandValidator_WhenAmountIsNotPositive_ShouldReturnError(decimal amount)
     {
         // Arrange
-        var validator = new BuyAssetCommandValidator(new InMemoryRepository<Wallet>());
+        var validator = new BuyAssetCommandValidator();
 
         // Act
         var result = await validator.ValidateAsync(new BuyAssetCommand
         {
-            UserId = Guid.NewGuid(),
             Symbol = "BTCUSDT",
             Amount = amount,
             RequestedPrice = 1m
@@ -52,12 +51,11 @@ public class QueryAndValidatorTests
     public async Task BuyAssetCommandValidator_WhenSymbolIsEmpty_ShouldReturnError()
     {
         // Arrange
-        var validator = new BuyAssetCommandValidator(new InMemoryRepository<Wallet>());
+        var validator = new BuyAssetCommandValidator();
 
         // Act
         var result = await validator.ValidateAsync(new BuyAssetCommand
         {
-            UserId = Guid.NewGuid(),
             Symbol = "",
             Amount = 1m,
             RequestedPrice = 1m
@@ -69,22 +67,21 @@ public class QueryAndValidatorTests
     }
 
     [Fact]
-    public async Task SellAssetCommandValidator_WhenUserIdIsEmpty_ShouldReturnError()
+    public async Task SellAssetCommandValidator_WhenRequestedPriceIsNotPositive_ShouldReturnError()
     {
         // Arrange
-        var validator = new SellAssetCommandValidator(new InMemoryRepository<Asset>());
+        var validator = new SellAssetCommandValidator();
 
         // Act
         var result = await validator.ValidateAsync(new SellAssetCommand
         {
-            UserId = Guid.Empty,
             Symbol = "BTCUSDT",
             Amount = 1m,
-            RequestedPrice = 1m
+            RequestedPrice = 0m
         });
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(SellAssetCommand.UserId));
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(SellAssetCommand.RequestedPrice));
     }
 }

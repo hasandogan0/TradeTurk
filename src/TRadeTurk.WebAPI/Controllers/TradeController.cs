@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TRadeTurk.Application.Common.Interfaces;
 using TRadeTurk.Application.Features.Assets.Commands;
@@ -6,6 +7,7 @@ using TRadeTurk.Application.Features.Assets.Commands;
 namespace TRadeTurk.WebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/trade")]
 public class TradeController : ControllerBase
 {
@@ -21,7 +23,7 @@ public class TradeController : ControllerBase
     [HttpPost("buy")]
     public async Task<IActionResult> BuyAsset([FromBody] BuyAssetCommand command)
     {
-        _currentUserContext.SetUserId(command.UserId);
+        User.SetCurrentUserFromClaims(_currentUserContext);
         var result = await _mediator.Send(command);
 
         return result.IsSuccess ? Ok(result) : BadRequest(result);
@@ -30,7 +32,7 @@ public class TradeController : ControllerBase
     [HttpPost("sell")]
     public async Task<IActionResult> SellAsset([FromBody] SellAssetCommand command)
     {
-        _currentUserContext.SetUserId(command.UserId);
+        User.SetCurrentUserFromClaims(_currentUserContext);
         var result = await _mediator.Send(command);
 
         return result.IsSuccess ? Ok(result) : BadRequest(result);
