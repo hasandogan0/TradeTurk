@@ -140,7 +140,7 @@ export function App() {
             <button className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-white/[0.03] lg:hidden" onClick={() => setMobileOpen(true)}><Menu size={18} /></button>
             <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-line bg-white/[0.04] px-4 py-3">
               <Search size={20} className="text-slate-500" />
-              <input className="w-full bg-transparent text-base outline-none placeholder:text-slate-600" placeholder="Varlik ara (BTC, ETH, SOL...)" />
+              <input className="w-full bg-transparent text-sm outline-none placeholder:text-slate-600" placeholder="Varlik ara (BTC, ETH, SOL...)" />
             </div>
             <div className="hidden items-center gap-2 rounded-xl border border-line bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-300 sm:flex">
               <Wifi size={18} className="text-accent" /> {connectionLabel}
@@ -173,9 +173,9 @@ function AuthScreen({ authMode, setAuthMode, onToken }: { authMode: 'login' | 'r
     <main className="grid min-h-screen place-items-center bg-ink px-5 text-slate-100">
       <section className="w-full max-w-lg rounded-2xl border border-line bg-panel/90 p-6 shadow-xl shadow-cyan-500/10 backdrop-blur">
         <Brand />
-        <h1 className="mt-7 text-xl font-black text-white">{authMode === 'login' ? 'Hesabina giris yap' : 'Demo portfoyunu olustur'}</h1>
+        <h1 className="mt-7 text-lg font-black text-white">{authMode === 'login' ? 'Hesabina giris yap' : 'Demo portfoyunu olustur'}</h1>
         <p className="mt-3 text-sm text-slate-400">{authMode === 'login' ? 'Token ile korunan TRadeTurk paneline devam et.' : 'Kayitta 50,000 USDT demo cüzdan ve sanal kart otomatik acilir.'}</p>
-        {error && <div className="mt-5 rounded-2xl border border-danger/30 bg-danger/10 p-4 text-base text-rose-200">{error}</div>}
+        {error && <div className="mt-5 rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-rose-200">{error}</div>}
         <div className="mt-7 space-y-4">
           {authMode === 'register' && <Input label="Ad soyad" value={form.fullName} onChange={(fullName) => setForm({ ...form, fullName })} />}
           {authMode === 'register' && <Input label="Email" value={form.email} onChange={(email) => setForm({ ...form, email })} />}
@@ -185,7 +185,7 @@ function AuthScreen({ authMode, setAuthMode, onToken }: { authMode: 'login' | 'r
           <button disabled={mutation.isPending} onClick={() => mutation.mutate()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-black text-white shadow-xl shadow-accent/20 disabled:opacity-60">
             {mutation.isPending && <Loader2 className="animate-spin" />} {authMode === 'login' ? 'Giris Yap' : 'Kayit Ol'}
           </button>
-          <button className="w-full py-2 text-base font-semibold text-cyan-300" onClick={() => { setError(''); setAuthMode(authMode === 'login' ? 'register' : 'login'); }}>
+          <button className="w-full py-2 text-sm font-semibold text-cyan-300" onClick={() => { setError(''); setAuthMode(authMode === 'login' ? 'register' : 'login'); }}>
             {authMode === 'login' ? 'Yeni hesap olustur' : 'Zaten hesabim var'}
           </button>
         </div>
@@ -209,8 +209,8 @@ function Dashboard(props: any) {
           const direction = price.price >= price.previousPrice ? 'text-accent' : 'text-danger';
           return <article key={symbol} className="rounded-2xl border border-line bg-panel p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-white/5 text-sm font-black">{coinShort(symbol)[0]}</div><div><div className="text-base font-black">{coinShort(symbol)}</div><div className="text-xs text-slate-400">{coinName(symbol)}</div></div></div>
-              <div className={`text-right text-base font-black ${direction}`}>{formatCurrency(price.price)}</div>
+              <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-lg bg-white/5 text-xs font-black">{coinShort(symbol)[0]}</div><div><div className="text-sm font-black">{coinShort(symbol)}</div><div className="text-xs text-slate-400">{coinName(symbol)}</div></div></div>
+              <div className={`text-right text-sm font-black ${direction}`}>{formatCurrency(price.price)}</div>
             </div>
             <div className="mt-6 h-20 rounded-2xl bg-[linear-gradient(135deg,rgba(34,197,94,0.24),rgba(56,189,248,0.12))]" />
           </article>;
@@ -220,11 +220,11 @@ function Dashboard(props: any) {
         <div className="rounded-2xl border border-line bg-panel p-6 shadow-xl">
           <div className="mb-5 flex items-center justify-between"><h2 className="text-base font-black">Hizli Islem</h2>{isTrading && <Loader2 className="animate-spin text-accent" />}</div>
           <div className="mb-5 grid grid-cols-2 rounded-xl bg-black/25 p-1.5">{(['buy', 'sell'] as TradeMode[]).map((item) => <button key={item} onClick={() => setMode(item)} className={`rounded-lg py-2 text-sm font-black ${mode === item ? 'bg-white/10 text-white' : 'text-slate-500'}`}>{item === 'buy' ? 'Alis' : 'Satis'}</button>)}</div>
-          <label className="mb-2 block text-base font-semibold text-slate-300">Varlik</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-300">Varlik</label>
           <select value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value)} className="mb-5 w-full rounded-xl border border-line bg-panelSoft px-3 py-3 text-sm outline-none">{symbols.map((symbol) => <option key={symbol} value={symbol}>{coinName(symbol)} ({coinShort(symbol)})</option>)}</select>
-          <label className="mb-2 block text-base font-semibold text-slate-300">Miktar</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-300">Miktar</label>
           <div className="mb-5 flex items-center rounded-xl border border-line bg-panelSoft px-3"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0" step="0.00000001" className="w-full bg-transparent py-3 text-sm outline-none" placeholder="0.00" /><span className="text-xs font-black text-slate-400">{coinShort(selectedSymbol)}</span></div>
-          <div className="mb-6 space-y-3 rounded-2xl bg-black/25 p-5 text-base"><Row label="Birim Fiyat" value={formatCurrency(selectedPrice)} /><Row label="Komisyon (0.1%)" value={formatCurrency(fee)} /><Row label="Toplam" value={formatCurrency(total)} strong /></div>
+          <div className="mb-6 space-y-3 rounded-xl bg-black/25 p-4 text-sm"><Row label="Birim Fiyat" value={formatCurrency(selectedPrice)} /><Row label="Komisyon (0.1%)" value={formatCurrency(fee)} /><Row label="Toplam" value={formatCurrency(total)} strong /></div>
           <button disabled={isTrading} onClick={submitTrade} className={`w-full rounded-xl py-3 text-sm font-black text-white shadow-xl disabled:opacity-60 ${mode === 'buy' ? 'bg-accent shadow-accent/20' : 'bg-danger shadow-danger/20'}`}>{mode === 'buy' ? 'Satin Alimi Onayla' : 'Satisi Onayla'}</button>
         </div>
         <AssetList assets={assets} prices={prices} />
@@ -242,8 +242,8 @@ function WalletPage({ isLoading, isError, wallet, prices }: any) {
       <Metric title="Toplam Portfoy Degeri" value={formatCurrency(wallet.portfolioTotalValue)} sub="USDT + asset degeri" />
       <div className="rounded-2xl border border-cyan-400/25 bg-[linear-gradient(135deg,rgba(14,165,233,0.22),rgba(34,197,94,0.16))] p-6 shadow-xl">
         <div className="flex items-center justify-between"><CreditCard /><ShieldCheck className="text-accent" /></div>
-        <div className="mt-8 text-lg font-black tracking-wide">{wallet.virtualCard?.maskedCardNumber ?? '**** **** **** ----'}</div>
-        <div className="mt-5 flex justify-between text-base font-bold text-slate-200"><span>{wallet.virtualCard?.cardHolderName ?? 'Demo Kart'}</span><span>{String(wallet.virtualCard?.expiryMonth ?? 0).padStart(2, '0')}/{wallet.virtualCard?.expiryYear ?? '----'}</span></div>
+        <div className="mt-8 text-base font-black tracking-wide">{wallet.virtualCard?.maskedCardNumber ?? '**** **** **** ----'}</div>
+        <div className="mt-5 flex justify-between text-sm font-bold text-slate-200"><span>{wallet.virtualCard?.cardHolderName ?? 'Demo Kart'}</span><span>{String(wallet.virtualCard?.expiryMonth ?? 0).padStart(2, '0')}/{wallet.virtualCard?.expiryYear ?? '----'}</span></div>
       </div>
     </section>
     <section className="grid gap-6 md:grid-cols-2"><Metric title="Toplam Bakiye" value={formatCurrency(wallet.totalBalance)} sub="Demo sanal bakiye" /><Metric title="Kullanilabilir Bakiye" value={formatCurrency(wallet.availableBalance)} sub="Trade icin uygun" /></section>
@@ -257,7 +257,7 @@ function TransactionsPage({ isLoading, transactions }: any) {
   if (isLoading) return <State text="Islem gecmisi yukleniyor..." />;
   return <section className="rounded-2xl border border-line bg-panel p-6 shadow-xl">
     <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><h1 className="text-lg font-black">Islem Gecmisi</h1><div className="grid grid-cols-3 rounded-xl bg-black/25 p-1.5">{(['ALL', 'BUY', 'SELL'] as const).map((item) => <button key={item} onClick={() => setFilter(item)} className={`rounded-lg px-3 py-2 text-xs font-black ${filter === item ? 'bg-white/10 text-white' : 'text-slate-500'}`}>{item === 'ALL' ? 'Tumu' : item === 'BUY' ? 'Alis' : 'Satis'}</button>)}</div></div>
-    {filtered.length === 0 ? <State text="Henuz islem yok." /> : <div className="overflow-x-auto"><table className="w-full text-left text-base"><thead className="text-sm uppercase text-slate-500"><tr><th className="p-4">Tip</th><th className="p-4">Symbol</th><th className="p-4">Miktar</th><th className="p-4">Fiyat</th><th className="p-4">Toplam</th><th className="p-4">Tarih</th><th className="p-4">Durum</th></tr></thead><tbody>{filtered.map((t: any) => <tr key={t.id} className="border-t border-line"><td className={`p-4 font-black ${t.type === 'BUY' ? 'text-accent' : 'text-danger'}`}>{t.type}</td><td className="p-4">{t.symbol}</td><td className="p-4">{t.amount}</td><td className="p-4">{formatCurrency(t.price)}</td><td className="p-4">{formatCurrency(t.total)}</td><td className="p-4 text-slate-300">{new Date(t.createdAt).toLocaleString()}</td><td className="p-4">{t.status}</td></tr>)}</tbody></table></div>}
+    {filtered.length === 0 ? <State text="Henuz islem yok." /> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-3">Tip</th><th className="p-3">Symbol</th><th className="p-3">Miktar</th><th className="p-3">Fiyat</th><th className="p-3">Toplam</th><th className="p-3">Tarih</th><th className="p-3">Durum</th></tr></thead><tbody>{filtered.map((t: any) => <tr key={t.id} className="border-t border-line"><td className={`p-3 font-black ${t.type === 'BUY' ? 'text-accent' : 'text-danger'}`}>{t.type}</td><td className="p-3">{t.symbol}</td><td className="p-3">{t.amount}</td><td className="p-3">{formatCurrency(t.price)}</td><td className="p-3">{formatCurrency(t.total)}</td><td className="p-3 text-slate-300">{new Date(t.createdAt).toLocaleString()}</td><td className="p-3">{t.status}</td></tr>)}</tbody></table></div>}
   </section>;
 }
 
@@ -276,9 +276,9 @@ function AssetList({ assets, prices }: any) {
 
 function Brand() { return <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/15 text-accent"><Activity size={22} /></div><div><div className="text-base font-black tracking-wide">TRade<span className="text-accent">Turk</span></div><div className="text-xs text-slate-500">Pro Trading Desk</div></div></div>; }
 function UserPanel({ user, onLogout }: { user?: UserDto; onLogout: () => void }) { return <div className="absolute bottom-7 left-7 right-7 rounded-xl border border-line bg-white/[0.04] p-4"><div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-700 text-sm font-black">{user?.fullName?.slice(0, 2).toUpperCase() ?? 'TT'}</div><div><div className="text-sm font-black">{user?.fullName ?? 'TRadeTurk'}</div><div className="text-xs text-slate-500">{user?.email}</div></div></div><button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2 text-xs font-bold text-slate-300"><LogOut size={16} /> Cikis</button></div>; }
-function Metric({ title, value, sub }: { title: string; value: string; sub: string }) { return <article className="rounded-2xl border border-line bg-panel p-5 shadow-xl"><div className="text-sm font-semibold text-slate-400">{title}</div><div className="mt-2 text-lg font-black text-white">{value}</div><div className="mt-2 text-xs text-cyan-300">{sub}</div></article>; }
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className={`flex justify-between ${strong ? 'border-t border-line pt-3 text-base font-black text-white' : 'text-slate-400'}`}><span>{label}</span><span>{value}</span></div>; }
+function Metric({ title, value, sub }: { title: string; value: string; sub: string }) { return <article className="rounded-2xl border border-line bg-panel p-5 shadow-xl"><div className="text-xs font-semibold text-slate-400">{title}</div><div className="mt-2 text-base font-black text-white">{value}</div><div className="mt-2 text-xs text-cyan-300">{sub}</div></article>; }
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className={`flex justify-between ${strong ? 'border-t border-line pt-3 text-sm font-black text-white' : 'text-slate-400'}`}><span>{label}</span><span>{value}</span></div>; }
 function Info({ label, value }: { label: string; value: string | number }) { return <div><div className="text-xs text-slate-500">{label}</div><div className="text-sm font-bold">{value}</div></div>; }
-function State({ text }: { text: string }) { return <div className="rounded-2xl border border-line bg-white/[0.03] p-6 text-base text-slate-400">{text}</div>; }
+function State({ text }: { text: string }) { return <div className="rounded-xl border border-line bg-white/[0.03] p-4 text-sm text-slate-400">{text}</div>; }
 function Input({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) { return <label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-line bg-panelSoft px-3 py-2.5 text-sm outline-none focus:border-accent/60" /></label>; }
 function Toast({ type, message, onClose }: { type: 'success' | 'error'; message: string; onClose: () => void }) { return <div className={`fixed right-5 top-5 z-50 flex max-w-md items-center gap-3 rounded-2xl border p-4 text-sm shadow-xl ${type === 'success' ? 'border-accent/30 bg-accent/15 text-emerald-100' : 'border-danger/30 bg-danger/15 text-rose-100'}`}><CheckCircle2 className={type === 'success' ? 'text-accent' : 'text-danger'} /><span>{message}</span><button onClick={onClose}><X size={18} /></button></div>; }
