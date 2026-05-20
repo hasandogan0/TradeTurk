@@ -160,7 +160,13 @@ export function App() {
 
   const visibleSymbols = useMemo(() => {
     const query = search.trim().toUpperCase();
-    return defaultSymbols.filter((symbol) => !query || symbol.includes(query) || coinName(symbol).toUpperCase().includes(query));
+    if (!query) return defaultSymbols;
+    return defaultSymbols.filter((symbol) => 
+      symbol.includes(query) || 
+      coinShort(symbol).includes(query) || 
+      'USDT'.includes(query) || 
+      coinName(symbol).toUpperCase().includes(query)
+    );
   }, [search]);
 
   const tradeMutation = useMutation({
@@ -271,9 +277,66 @@ export function App() {
         <header className="sticky top-0 z-30 border-b border-line bg-ink/90 px-4 py-4 backdrop-blur-xl lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <button className="grid min-h-[44px] min-w-[44px] place-items-center rounded-xl border border-line bg-white/[0.03] lg:hidden transition hover:bg-white/[0.08]" onClick={() => setMobileOpen(true)}><Menu size={22} /></button>
-            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-line bg-white/[0.04] px-4 py-3 transition-colors focus-within:border-accent/50 focus-within:bg-white/[0.06]">
-              <Search size={20} className="text-slate-500" />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent text-base font-medium text-white outline-none placeholder:text-slate-500" placeholder="Sembol Ara: BTC, SOL..." />
+            <div className="relative flex min-w-0 flex-1 flex-col z-50">
+              <div className="flex w-full items-center gap-3 rounded-2xl border border-line bg-white/[0.04] px-4 py-3 transition-colors focus-within:border-accent/50 focus-within:bg-white/[0.06] group">
+                <Search size={20} className="text-slate-500 group-focus-within:text-accent transition-colors" />
+                <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent text-base font-medium text-white outline-none placeholder:text-slate-500" placeholder="Sembol Ara: BTC, SOL..." />
+              </div>
+              
+              {search.trim().length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-line bg-panel shadow-2xl backdrop-blur-2xl animate-slideUp overflow-hidden max-h-[420px] overflow-y-auto">
+                  {visibleSymbols.length > 0 ? (
+                    <div className="p-2 space-y-1">
+                      <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">Kripto Marketler</div>
+                      {visibleSymbols.map((symbol) => (
+                        <button 
+                          key={symbol} 
+                          onClick={() => { setSelectedSymbol(symbol); setSearch(''); }} 
+                          className="flex w-full items-center justify-between rounded-xl p-3 text-left transition hover:bg-white/5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/[0.04] font-black text-slate-200 border border-line/50">{coinShort(symbol).slice(0, 3)}</div>
+                            <div>
+                              <div className="font-black text-white">{symbol}</div>
+                              <div className="text-sm font-medium text-slate-500">{coinName(symbol)}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-white">{formatCurrency(prices[symbol]?.price ?? 0)}</div>
+                            <div className={`text-sm font-bold ${(prices[symbol]?.changePercent24h ?? 0) >= 0 ? 'text-accent' : 'text-danger'}`}>
+                              {(prices[symbol]?.changePercent24h ?? 0) >= 0 ? '+' : ''}{(prices[symbol]?.changePercent24h ?? 0).toFixed(2)}%
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6">
+                      <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-center">
+                        <AlertCircle className="mx-auto mb-2 text-amber-500" size={32} />
+                        <h3 className="mb-2 text-lg font-bold text-amber-500">Sonuç bulunamadı</h3>
+                        <p className="text-sm font-medium text-amber-200/80">
+                          <strong className="text-white">"{search.toUpperCase()}"</strong> şu anda desteklenmiyor. TradeTurk demo sürümü kripto marketleri destekler.
+                        </p>
+                      </div>
+                      <div className="mt-6">
+                        <div className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500 text-center">Önerilen Kripto Paralar</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'].map((suggestedSymbol) => (
+                            <button
+                              key={suggestedSymbol}
+                              onClick={() => { setSelectedSymbol(suggestedSymbol); setSearch(''); }}
+                              className="rounded-xl border border-line bg-white/[0.02] p-3 text-center transition hover:border-accent/50 hover:bg-accent/10"
+                            >
+                              <div className="font-black text-white">{coinShort(suggestedSymbol)}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="hidden items-center gap-2 rounded-2xl border border-line bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-300 sm:flex">
               {connectionLabel.includes('Canlı') ? <Wifi size={18} className="text-accent" /> : <Loader2 size={18} className="animate-spin text-amber-400" />}
@@ -327,6 +390,7 @@ export function App() {
               isTrading={tradeMutation.isPending}
               assets={assets}
               symbols={visibleSymbols}
+              searchQuery={search}
               favorites={favorites}
               toggleFavorite={toggleFavorite}
               transactions={transactionsQuery.data ?? []}
@@ -429,7 +493,8 @@ function Dashboard(props: any) {
     portfolioHistory,
     historyRange,
     setHistoryRange,
-    isMarketLoading
+    isMarketLoading,
+    searchQuery
   } = props;
 
   return (
@@ -443,12 +508,12 @@ function Dashboard(props: any) {
 
       <section className="grid gap-6 xl:grid-cols-[320px_1fr_360px] lg:grid-cols-[1fr_360px]">
         <div className="hidden xl:block">
-          <Watchlist symbols={symbols} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} favorites={favorites} toggleFavorite={toggleFavorite} isLoading={isMarketLoading} />
+          <Watchlist symbols={symbols} searchQuery={searchQuery} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} favorites={favorites} toggleFavorite={toggleFavorite} isLoading={isMarketLoading} />
         </div>
         <div className="flex flex-col gap-6">
           <ChartPanel symbol={selectedSymbol} ticker={selectedTicker} />
           <div className="xl:hidden">
-            <Watchlist symbols={symbols} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} favorites={favorites} toggleFavorite={toggleFavorite} isLoading={isMarketLoading} horizontal />
+            <Watchlist symbols={symbols} searchQuery={searchQuery} prices={prices} selectedSymbol={selectedSymbol} setSelectedSymbol={setSelectedSymbol} favorites={favorites} toggleFavorite={toggleFavorite} isLoading={isMarketLoading} horizontal />
           </div>
         </div>
         <TradePanel mode={mode} setMode={setMode} orderType={orderType} setOrderType={setOrderType} selectedSymbol={selectedSymbol} amount={amount} setAmount={setAmount} limitPrice={limitPrice} setLimitPrice={setLimitPrice} triggerPrice={triggerPrice} setTriggerPrice={setTriggerPrice} selectedPrice={selectedPrice} fee={fee} total={total} submitTrade={submitTrade} isTrading={isTrading} />
@@ -491,7 +556,7 @@ function TickerStrip({ symbols, prices, selectedSymbol, setSelectedSymbol }: any
   );
 }
 
-function Watchlist({ symbols, prices, selectedSymbol, setSelectedSymbol, favorites, toggleFavorite, isLoading, horizontal }: any) {
+function Watchlist({ symbols, searchQuery, prices, selectedSymbol, setSelectedSymbol, favorites, toggleFavorite, isLoading, horizontal }: any) {
   return (
     <section className={`flex flex-col rounded-2xl border border-line bg-panel/95 shadow-2xl overflow-hidden ${horizontal ? '' : 'h-full max-h-[700px]'}`}>
       <div className="p-5 border-b border-line bg-white/[0.02] flex items-center justify-between">
@@ -499,7 +564,14 @@ function Watchlist({ symbols, prices, selectedSymbol, setSelectedSymbol, favorit
         {isLoading && <Loader2 className="animate-spin text-slate-400" size={20} />}
       </div>
       <div className={`p-3 space-y-2 overflow-auto ${horizontal ? 'flex gap-3 overflow-x-auto pb-4 snap-x' : 'flex-1 overflow-y-auto'}`}>
-        {symbols.length === 0 && !isLoading && <State text="Sonuç bulunamadı." icon={Search} />}
+        {symbols.length === 0 && !isLoading && (
+          <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-center">
+            <AlertCircle className="mx-auto mb-2 text-amber-500" size={24} />
+            <p className="text-sm font-medium text-amber-200/80">
+              <strong className="text-white">"{searchQuery?.toUpperCase()}"</strong> şu anda desteklenmiyor. TradeTurk demo sürümü kripto marketleri destekler.
+            </p>
+          </div>
+        )}
         {symbols.map((symbol: string) => {
           const ticker = prices[symbol] ?? {};
           const positive = (ticker.changePercent24h ?? 0) >= 0;
