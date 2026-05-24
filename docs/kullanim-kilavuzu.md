@@ -32,7 +32,7 @@ npm --version
 Proje ana klasorunde terminal acin:
 
 ```bash
-cd C:\Users\hasan\Desktop\YmUygulamalar2\TradeTurk
+cd %USERPROFILE%\Desktop\YmUygulamalar2\TradeTurk
 ```
 
 Paketleri yukleyip projeyi derleyin:
@@ -89,7 +89,7 @@ Uygulama acilirken EF Core migration'lari otomatik calistirir ve veritabani sema
 Ayrica yeni bir terminal acin ve frontend klasorune gecin:
 
 ```bash
-cd C:\Users\hasan\Desktop\YmUygulamalar2\TradeTurk\frontend
+cd %USERPROFILE%\Desktop\YmUygulamalar2\TradeTurk\frontend
 ```
 
 Ilk kez calistiriyorsaniz npm paketlerini yukleyin:
@@ -151,7 +151,7 @@ copy frontend\.env.example frontend\.env
 Backend:
 
 ```bash
-cd C:\Users\hasan\Desktop\YmUygulamalar2\TradeTurk
+cd %USERPROFILE%\Desktop\YmUygulamalar2\TradeTurk
 sqllocaldb start MSSQLLocalDB
 dotnet run --project src/TRadeTurk.WebAPI --urls http://localhost:5129
 ```
@@ -159,7 +159,7 @@ dotnet run --project src/TRadeTurk.WebAPI --urls http://localhost:5129
 Frontend:
 
 ```bash
-cd C:\Users\hasan\Desktop\YmUygulamalar2\TradeTurk\frontend
+cd %USERPROFILE%\Desktop\YmUygulamalar2\TradeTurk\frontend
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
