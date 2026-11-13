@@ -1,4 +1,9 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
@@ -18,7 +23,9 @@ services:
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=TradeTurk;User Id=sa;Password=${SQLSERVER_PASSWORD:-TradeTurk!2026};TrustServerCertificate=True"
       Frontend__BaseUrl: "http://localhost:5173"
       Jwt__Secret: "${JWT_SECRET:-TradeTurk-development-secret-key-change-me-please}"
+      Redis__ConnectionString: "${REDIS_CONNECTION:-redis:6379}"
     depends_on:
+      - redis
       - sqlserver
     ports:
       - "5129:8080"

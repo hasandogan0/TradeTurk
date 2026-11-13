@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TRadeTurk.Application.Common;
 using TRadeTurk.Application.Common.Interfaces;
@@ -31,11 +30,11 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
         ["NEARUSDT"] = 6.4m
     };
 
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
     private readonly ILogger<BinanceProxyService> _logger;
     private readonly BinanceService _realBinanceService;
 
-    public BinanceProxyService(IMemoryCache cache, ILogger<BinanceProxyService> logger, BinanceService realBinanceService)
+    public BinanceProxyService(ICacheService cache, ILogger<BinanceProxyService> logger, BinanceService realBinanceService)
     {
         _cache = cache;
         _logger = logger;
@@ -48,7 +47,8 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
         var cacheKey = $"Binance_Price_{normalizedSymbol}";
         var fallbackKey = $"Binance_LastGoodPrice_{normalizedSymbol}";
 
-        if (_cache.TryGetValue(cacheKey, out decimal cachedPrice))
+        var cachedPrice = await _cache.GetAsync<decimal>(cacheKey, cancellationToken);
+        if (cachedPrice != 0)
         {
             _logger.LogInformation("Price for {Symbol} retrieved from proxy cache.", normalizedSymbol);
             return cachedPrice;
@@ -57,7 +57,8 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
         await RateLimitGate.WaitAsync(cancellationToken);
         try
         {
-            if (_cache.TryGetValue(cacheKey, out cachedPrice))
+            cachedPrice = await _cache.GetAsync<decimal>(cacheKey, cancellationToken);
+            if (cachedPrice != 0)
             {
                 return cachedPrice;
             }
@@ -66,15 +67,16 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
 
             if (realTimePrice > 0)
             {
-                _cache.Set(cacheKey, realTimePrice, TimeSpan.FromSeconds(30));
-                _cache.Set(fallbackKey, realTimePrice, TimeSpan.FromMinutes(10));
+                await _cache.SetAsync(cacheKey, realTimePrice, TimeSpan.FromSeconds(30), cancellationToken);
+                await _cache.SetAsync(fallbackKey, realTimePrice, TimeSpan.FromMinutes(10), cancellationToken);
             }
 
             return realTimePrice;
         }
         catch (Exception ex)
         {
-            if (_cache.TryGetValue(fallbackKey, out decimal fallbackPrice))
+            var fallbackPrice = await _cache.GetAsync<decimal>(fallbackKey, cancellationToken);
+            if (fallbackPrice != 0)
             {
                 _logger.LogWarning(ex, "Binance failed for {Symbol}. Returning fallback price.", normalizedSymbol);
                 return fallbackPrice;
@@ -100,7 +102,8 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
         var normalizedSymbol = symbol.Trim().ToUpperInvariant();
         var cacheKey = $"Binance_Ticker_{normalizedSymbol}";
 
-        if (_cache.TryGetValue(cacheKey, out MarketTickerDto? cachedTicker) && cachedTicker != null)
+        var cachedTicker = await _cache.GetAsync<MarketTickerDto>(cacheKey, cancellationToken);
+        if (cachedTicker != null)
         {
             return cachedTicker;
         }
@@ -110,15 +113,18 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
             var ticker = await _realBinanceService.GetTickerAsync(normalizedSymbol, cancellationToken);
             if (ticker.Price > 0)
             {
-                _cache.Set(cacheKey, ticker, TimeSpan.FromSeconds(20));
-                _cache.Set($"Binance_LastGoodTicker_{normalizedSymbol}", ticker, TimeSpan.FromMinutes(10));
+                await _cache.SetAsync(cacheKey, ticker, TimeSpan.FromSeconds(20), cancellationToken);
+                await _cache.SetAsync($"Binance_LastGoodTicker_{normalizedSymbol}", ticker, TimeSpan.FromMinutes(10), cancellationToken);
             }
 
             return ticker;
         }
         catch (Exception ex)
         {
-            if (_cache.TryGetValue($"Binance_LastGoodTicker_{normalizedSymbol}", out MarketTickerDto? fallbackTicker) && fallbackTicker != null)
+            var fallbackTicker = await _cache.GetAsync<MarketTickerDto>(
+                $"Binance_LastGoodTicker_{normalizedSymbol}",
+                cancellationToken);
+            if (fallbackTicker != null)
             {
                 _logger.LogWarning(ex, "Binance ticker failed for {Symbol}. Returning fallback ticker.", normalizedSymbol);
                 return fallbackTicker;
@@ -137,7 +143,8 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
     public async Task<IReadOnlyCollection<MarketTickerDto>> GetTickersAsync(IReadOnlyCollection<string> symbols, CancellationToken cancellationToken = default)
     {
         const string cacheKey = "Binance_Tickers_Supported";
-        if (_cache.TryGetValue(cacheKey, out IReadOnlyCollection<MarketTickerDto>? cachedTickers) && cachedTickers != null)
+        var cachedTickers = await _cache.GetAsync<MarketTickerDto[]>(cacheKey, cancellationToken);
+        if (cachedTickers != null)
         {
             return cachedTickers;
         }
@@ -145,7 +152,8 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
         await RateLimitGate.WaitAsync(cancellationToken);
         try
         {
-            if (_cache.TryGetValue(cacheKey, out cachedTickers) && cachedTickers != null)
+            cachedTickers = await _cache.GetAsync<MarketTickerDto[]>(cacheKey, cancellationToken);
+            if (cachedTickers != null)
             {
                 return cachedTickers;
             }
@@ -154,7 +162,7 @@ public class BinanceProxyService : IBinancePriceService, IMarketDataService
             var ordered = MarketSymbols.Supported
                 .Select(symbol => tickers.FirstOrDefault(t => t.Symbol == symbol) ?? CreateDemoTicker(symbol))
                 .ToArray();
-            _cache.Set(cacheKey, ordered, TimeSpan.FromSeconds(20));
+            await _cache.SetAsync(cacheKey, ordered, TimeSpan.FromSeconds(20), cancellationToken);
             return ordered;
         }
         catch (Exception ex)

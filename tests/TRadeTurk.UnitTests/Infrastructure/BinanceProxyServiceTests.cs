@@ -65,7 +65,10 @@ public class BinanceProxyServiceTests
         var httpClient = new HttpClient(handler);
         var binanceService = new BinanceService(httpClient, configuration, NullLogger<BinanceService>.Instance);
 
-        return new BinanceProxyService(cache, NullLogger<BinanceProxyService>.Instance, binanceService);
+        return new BinanceProxyService(
+            new InMemoryCacheService(cache),
+            NullLogger<BinanceProxyService>.Instance,
+            binanceService);
     }
 
     private sealed class SequenceHttpMessageHandler : HttpMessageHandler

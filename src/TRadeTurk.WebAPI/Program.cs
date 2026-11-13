@@ -65,6 +65,15 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<InMemoryCacheService>();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis")
+        ?? builder.Configuration["Redis:ConnectionString"]
+        ?? "localhost:6379";
+    options.InstanceName = "tradeturk:";
+});
+builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 builder.Services.AddHttpClient<BinanceService>();
 builder.Services.AddScoped<IBinancePriceService, BinanceProxyService>();
 builder.Services.AddScoped<IMarketDataService, BinanceProxyService>();

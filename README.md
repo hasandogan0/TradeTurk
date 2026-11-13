@@ -72,6 +72,8 @@ cp frontend/.env.example frontend/.env
 docker compose up --build
 ```
 
+The Docker stack includes Redis for distributed Binance price and ticker caching. If Redis is unavailable, the API falls back to in-memory caching.
+
 ## API
 
 Endpoint details are documented in [docs/api-endpoints.md](docs/api-endpoints.md).
