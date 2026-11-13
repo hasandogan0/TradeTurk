@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: tradeturk-api
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: tradeturk-db
+          property: connectionString
+      - key: Redis__ConnectionString
+        fromService:
+          type: keyvalue
+          name: tradeturk-redis
+          property: connectionString
+      - key: Frontend__BaseUrl
+        value: https://tradeturk-frontend.onrender.com
+      - key: Jwt__Secret
+        generateValue: true
+
+  - type: keyvalue
+    name: tradeturk-redis
+    region: frankfurt
+    plan: free
+
+  - type: static
+    name: tradeturk-frontend
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    staticPublishPath: frontend/dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://tradeturk-api.onrender.com
+
+databases:
+  - name: tradeturk-db
+    region: frankfurt
+    plan: free
+    databaseName: tradeturk
+    user: tradeturk

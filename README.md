@@ -78,6 +78,10 @@ docker compose up --build
 
 The Docker stack includes Redis for distributed Binance price and ticker caching. If Redis is unavailable, the API falls back to in-memory caching.
 
+## Live demo deployment
+
+The repository includes a Render Blueprint in [`render.yaml`](render.yaml) for the API, frontend, PostgreSQL and Redis-compatible Key Value services. In Render, choose **New > Blueprint**, connect this repository, and apply the Blueprint. The free PostgreSQL database expires after 30 days and free services may spin down when idle.
+
 ## API
 
 Endpoint details are documented in [docs/api-endpoints.md](docs/api-endpoints.md).

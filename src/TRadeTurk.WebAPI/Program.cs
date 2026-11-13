@@ -39,7 +39,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -125,7 +125,10 @@ app.MapHub<PriceHub>("/priceHub");
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    if (dbContext.Database.IsSqlServer())
+    if (!string.Equals(
+            dbContext.Database.ProviderName,
+            "Microsoft.EntityFrameworkCore.Sqlite",
+            StringComparison.Ordinal))
     {
         dbContext.Database.Migrate();
     }
