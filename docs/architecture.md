@@ -49,6 +49,10 @@ This allows production code to use live Binance data while tests use determinist
 
 ## SignalR Flow
 
+SignalR uses the Redis backplane so price and notification messages are delivered
+across multiple API instances. The Redis connection is configured with
+`Redis:ConnectionString`; local development falls back to `localhost:6379`.
+
 `BinanceDataWorker` publishes live ticker updates to `PriceHub`.
 `PendingOrderWorker` processes executable pending orders and broadcasts notification events.
 

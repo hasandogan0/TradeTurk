@@ -36,7 +36,7 @@ See [docs/architecture.md](docs/architecture.md) for the longer version.
 
 - .NET 10, ASP.NET Core, EF Core, MediatR, FluentValidation
 - SQL Server, Unit of Work, optimistic concurrency via `RowVersion`
-- SignalR for live updates
+- SignalR for live updates with a Redis backplane for horizontal scaling
 - React, TypeScript, TanStack Query, Tailwind, Lucide Icons
 - Binance API through Proxy Pattern and strategy-based price providers
 - xUnit, FluentAssertions, WebApplicationFactory integration tests

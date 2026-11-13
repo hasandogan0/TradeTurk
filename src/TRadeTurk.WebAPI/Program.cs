@@ -1,4 +1,5 @@
 using FluentValidation;
+using StackExchange.Redis;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using System.Threading.RateLimiting;
@@ -16,6 +17,9 @@ using TRadeTurk.WebAPI.Authentication;
 using TRadeTurk.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+var redisConnection = builder.Configuration.GetConnectionString("Redis")
+    ?? builder.Configuration["Redis:ConnectionString"]
+    ?? "localhost:6379";
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -68,9 +72,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<InMemoryCacheService>();
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis")
-        ?? builder.Configuration["Redis:ConnectionString"]
-        ?? "localhost:6379";
+    options.Configuration = redisConnection;
     options.InstanceName = "tradeturk:";
 });
 builder.Services.AddSingleton<ICacheService, RedisCacheService>();
@@ -92,7 +94,11 @@ builder.Services.AddMediatR(cfg =>
 });
 
 builder.Services.AddValidatorsFromAssembly(typeof(BuyAssetCommandHandler).Assembly);
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(redisConnection, options =>
+    {
+        options.Configuration.ChannelPrefix = RedisChannel.Literal("tradeturk-signalr");
+    });
 
 var app = builder.Build();
 
