@@ -1,5 +1,9 @@
 # TRadeTurk
 
+[![Build](https://github.com/hasandogan0/TradeTurk/actions/workflows/ci.yml/badge.svg?branch=main&label=build)](https://github.com/hasandogan0/TradeTurk/actions/workflows/ci.yml)
+[![Tests](https://github.com/hasandogan0/TradeTurk/actions/workflows/ci.yml/badge.svg?branch=main&label=tests)](https://github.com/hasandogan0/TradeTurk/actions/workflows/ci.yml)
+[![CD](https://github.com/hasandogan0/TradeTurk/actions/workflows/cd.yml/badge.svg)](https://github.com/hasandogan0/TradeTurk/actions/workflows/cd.yml)
+
 TRadeTurk is a premium fintech/trading platform demo built with .NET, Clean Architecture, CQRS, SignalR, React and live Binance market data. It provides a demo wallet, virtual card, multi-market trading, advanced order tickets, portfolio analytics and real-time dashboard experiences.
 
 ## Features
